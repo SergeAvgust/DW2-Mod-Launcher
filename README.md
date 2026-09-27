@@ -2,7 +2,7 @@
 
 A community-oriented MOD launcher for **Distant Worlds 2**.
 
-Steam Workshop MODs and MODs installed in the game folder can be managed from one launcher.  
+Steam Workshop MODs and MODs installed in the game folder can be managed from one launcher.
 The project is developed as a hobby project, and contributions, improvements, forks, and continued development by the community are welcome.
 
 > This is an unofficial community project and is not affiliated with or endorsed by CodeForce, Slitherine, or Matrix Games.
@@ -45,13 +45,13 @@ This is a hobby project. Community contributions, improvements, bug fixes, forks
 Download or clone the repository, then run:
 
 ```text
-BUILD_BETA.cmd
+build.cmd
 ```
 
 To build and immediately launch the application, run:
 
 ```text
-BUILD_AND_RUN_BETA.cmd
+run.cmd
 ```
 
 Both scripts call `dotnet build` on [`DW2ModLauncher.sln`](DW2ModLauncher.sln). The project is split into
@@ -101,7 +101,7 @@ You are free to contribute:
 
 Pull Requests / Merge Requests, Issues, and suggestions are welcome.
 
-There is no guarantee that the original developer will maintain this project indefinitely.  
+There is no guarantee that the original developer will maintain this project indefinitely.
 If maintenance stops, the community is welcome to continue development under the terms of the MIT License.
 
 ### License
@@ -114,7 +114,7 @@ See [`LICENSE`](LICENSE) for details.
 
 ## Disclaimer
 
-Distant Worlds 2 and related names and assets belong to their respective owners.  
+Distant Worlds 2 and related names and assets belong to their respective owners.
 This launcher is an unofficial fan/community project.
 
 ## 日本語
@@ -125,7 +125,7 @@ This launcher is an unofficial fan/community project.
 
 Steam Workshopから導入したMODと、ゲーム本体のMODフォルダーに導入したMODをまとめて確認・管理できます。
 
-このプロジェクトは趣味として開発されています。  
+このプロジェクトは趣味として開発されています。
 機能追加、改善、バグ修正、フォーク、別バージョンの作成など、コミュニティによる自由な参加を歓迎します。
 
 ### 主な機能
@@ -154,7 +154,7 @@ Steam Workshopから導入したMODと、ゲーム本体のMODフォルダーに
 リポジトリをダウンロードまたはCloneした後、
 
 ```text
-BUILD_BETA.cmd
+build.cmd
 ```
 
 を実行してください。
@@ -162,7 +162,7 @@ BUILD_BETA.cmd
 ビルド後、そのままランチャーを起動する場合は、
 
 ```text
-BUILD_AND_RUN_BETA.cmd
+run.cmd
 ```
 
 を使用できます。
@@ -212,7 +212,7 @@ Steam\steamapps\common\Distant Worlds 2
 
 Pull Request / Merge Request、Issue、提案なども歓迎します。
 
-開発者が将来このプロジェクトのメンテナンスを継続することを保証するものではありません。  
+開発者が将来このプロジェクトのメンテナンスを継続することを保証するものではありません。
 その場合も、MIT Licenseの範囲内でコミュニティが自由に開発を継続できます。
 
 ### ライセンス

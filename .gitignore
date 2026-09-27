@@ -11,6 +11,9 @@ obj/
 *.user
 *.suo
 
+# Python cache
+*.pyc
+
 # Local user config (keep the example tracked)
 launcher_settings.json
 

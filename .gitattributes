@@ -1,0 +1,11 @@
+# Force LF line endings
+* text=auto eol=lf
+*.bat eol=lf
+*.cmd eol=lf
+*.cs eol=lf
+*.csproj eol=lf
+*.sln eol=lf
+*.json eol=lf
+*.ini eol=lf
+*.py eol=lf
+*.md eol=lf

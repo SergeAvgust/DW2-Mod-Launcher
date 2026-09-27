@@ -1,5 +1,7 @@
 # DLL-injection launch mechanism
 
+*English | [日本語](dll-injection.ja.md)*
+
 DW2 loads third-party code mods via a native command-line flag:
 
 ```

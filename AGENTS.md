@@ -29,15 +29,15 @@ Planned/target scope (in progress or aspirational — confirm current state befo
   `MainForm.Settings.cs`, `MainForm.LoadOrder.cs`, `MainForm.Localization.cs`) rather than one class per file —
   this is one class organized across files, not several independent classes.
 - [src/DW2ModLauncher.Tests/](src/DW2ModLauncher.Tests/) — xUnit tests against `Core` (run with `dotnet test`)
-- [BUILD_BETA.cmd](BUILD_BETA.cmd) / [BUILD_AND_RUN_BETA.cmd](BUILD_AND_RUN_BETA.cmd) — build (and build+run) scripts, wrapping `dotnet build`
+- [build.cmd](build.cmd) / [run.cmd](run.cmd) — build (and build+run) scripts, wrapping `dotnet build`
 - [launcher_settings.example.json](launcher_settings.example.json) — example user config (game folder, Workshop folder, managed MOD folder)
 - [docs/](docs/) — design notes, feature specs, and other documentation too long-lived for a PR description or issue thread
 
 ## Build & run
 
 ```text
-BUILD_BETA.cmd
-BUILD_AND_RUN_BETA.cmd
+build.cmd
+run.cmd
 ```
 
 Both wrap `dotnet build DW2ModLauncher.sln -c Release`. Requires the .NET 8 SDK and Windows (the app targets
