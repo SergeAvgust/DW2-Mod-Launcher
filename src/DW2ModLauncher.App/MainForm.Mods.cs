@@ -42,7 +42,6 @@ namespace DW2ModLauncherBeta
             RestoreWorkshopRuntimeState(currentWorkshopMods, workshopState);
             currentManagedMods = OrderModsForDisplay(currentManagedMods);
             currentWorkshopMods = OrderModsForDisplay(currentWorkshopMods);
-            RefreshAiCommanderAvailability();
             if (currentCollisions == null) currentCollisions = new Dictionary<string, List<ModInfo>>(StringComparer.OrdinalIgnoreCase);
 
             List<ModInfo> combinedMods = OrderModsForDisplay(currentManagedMods.Concat(currentWorkshopMods).ToList());
@@ -50,7 +49,6 @@ namespace DW2ModLauncherBeta
             SafeStage("Conflict analysis", delegate { AnalyzeConflicts(); });
             SafeStage("Duplicate analysis", delegate { AnalyzeDuplicates(); });
             SafeStage("Refresh status columns", delegate { RefreshModStatusColumns(); });
-            SafeStage("Load AI Commander settings", delegate { LoadAiSettings(); });
             SafeStage("Build launch command", delegate { UpdateCommandPreview(); });
             SafeStage("Overall status", delegate { UpdateOverallStatus(); });
         }
@@ -86,37 +84,6 @@ namespace DW2ModLauncherBeta
             }).ThenBy(m => m.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList();
         }
 
-        private void RefreshAiCommanderAvailability()
-        {
-            if (tabs == null || aiTab == null || aiNavigationButton == null) return;
-            bool found = (currentManagedMods ?? new List<ModInfo>()).Concat(currentWorkshopMods ?? new List<ModInfo>()).Any(IsAiCommanderMod);
-            aiNavigationButton.Visible = found;
-            if (settingsNavigationButton != null) settingsNavigationButton.Left = found ? 349 : 191;
-            bool tabExists = tabs.TabPages.Contains(aiTab);
-            if (!found && tabExists)
-            {
-                if (tabs.SelectedTab == aiTab) tabs.SelectedTab = modsTab;
-                tabs.TabPages.Remove(aiTab);
-            }
-            else if (found && !tabExists)
-            {
-                int settingsIndex = tabs.TabPages.IndexOf(settingsTab);
-                tabs.TabPages.Insert(settingsIndex < 0 ? tabs.TabPages.Count : settingsIndex, aiTab);
-            }
-            RefreshNavigationButtons();
-        }
-
-        private bool IsAiCommanderMod(ModInfo mod)
-        {
-            if (mod == null) return false;
-            string identity = ((mod.DisplayName ?? "") + " " + (mod.Id ?? "") + " " + Path.GetFileName(mod.Folder ?? "")).Replace("_", " ");
-            if (identity.IndexOf("AI Commander", StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            try
-            {
-                return !string.IsNullOrWhiteSpace(mod.Folder) && Directory.GetFiles(mod.Folder, "DW2AICommander.dll", SearchOption.AllDirectories).Length > 0;
-            }
-            catch { return false; }
-        }
 
         private string IncludedDocumentsSummary(ModInfo mod)
         {

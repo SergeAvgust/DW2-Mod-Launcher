@@ -101,7 +101,6 @@ namespace DW2ModLauncherBeta
 
         private TabControl tabs;
         private TabPage modsTab;
-        private TabPage aiTab;
         private TabPage settingsTab;
 
         private ListView modList;
@@ -111,16 +110,6 @@ namespace DW2ModLauncherBeta
         private PictureBox modPreview;
         private Label modName;
         private Label modDesc;
-
-        private CheckBox aiEnabled;
-        private CheckBox aiWar;
-        private CheckBox aiPeace;
-        private CheckBox aiUltimatum;
-        private CheckBox aiAdvisor;
-        private TextBox aiBackend;
-        private TextBox aiBaseUrl;
-        private TextBox aiModel;
-        private Label aiIniPathLabel;
 
         private TextBox gameRootBox;
         private TextBox workshopRootBox;
@@ -133,17 +122,13 @@ namespace DW2ModLauncherBeta
         private Button iniButton;
         private Button workshopRootButton;
         private Button gameOpenButton;
-        private Button saveAiButton;
-        private Button reloadAiButton;
         private Button detectButton;
         private Button saveSettingsButton;
         private Button workshopUpdateButton;
         private Button workshopSteamButton;
         private Button detailsButton;
         private Button selectedFolderButton;
-        private Button folderSettingsButton;
         private Button modsNavigationButton;
-        private Button aiNavigationButton;
         private Button settingsNavigationButton;
         private ComboBox stateEditor;
         private ListView stateEditorList;

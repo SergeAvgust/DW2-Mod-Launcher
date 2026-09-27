@@ -77,8 +77,6 @@ namespace DW2ModLauncherBeta
                         catch { }
                     }
                 }
-                if (!names.ContainsKey("en")) names["en"] = "English";
-                if (!names.ContainsKey("ja")) names["ja"] = "日本語";
                 if (!loaded.ContainsKey("en")) loaded["en"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 languages = loaded;
                 displayNames = names;

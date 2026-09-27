@@ -25,7 +25,7 @@ namespace DW2ModLauncherBeta
             catch (Exception ex)
             {
                 Logger.LogException("Fatal startup", ex);
-                ShowException("起動中にエラーが発生しました。", ex);
+                ShowException("An error occurred during startup.", ex);
             }
         }
 
@@ -33,7 +33,7 @@ namespace DW2ModLauncherBeta
         {
             Exception ex = e == null ? null : e.Exception;
             Logger.LogException("UI thread", ex);
-            ShowException("処理中にエラーが発生しました。ランチャーは可能な限り継続します。", ex);
+            ShowException("An error occurred. The launcher will continue if possible.", ex);
         }
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -47,7 +47,7 @@ namespace DW2ModLauncherBeta
             try
             {
                 string detail = ex == null ? "" : ("\r\n\r\n" + ex.GetType().Name + ": " + ex.Message);
-                MessageBox.Show(message + detail + "\r\n\r\nログ: " + Logger.CrashLogPath,
+                MessageBox.Show(message + detail + "\r\n\r\nLog: " + Logger.CrashLogPath,
                     "DW2 Mod Launcher BETA", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch { }

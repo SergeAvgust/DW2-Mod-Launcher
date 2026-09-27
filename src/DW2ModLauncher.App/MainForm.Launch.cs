@@ -44,7 +44,6 @@ namespace DW2ModLauncherBeta
         private void LaunchGame()
         {
             SaveSettingsFromUi();
-            if (FindAiIni() != null) SaveAiSettings();
             AnalyzeConflicts();
             RefreshModStatusColumns();
             List<string> diagnostics = BuildLaunchDiagnostics();

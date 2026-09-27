@@ -89,7 +89,6 @@ namespace DW2ModLauncherBeta
                 ApplyLanguage();
                 SaveSettings();
                 ApplyLanguageToManagedMods();
-                LoadAiSettings();
                 AnalyzeConflicts();
                 RefreshModStatusColumns();
                 RefreshSelectedDetails();
@@ -97,15 +96,11 @@ namespace DW2ModLauncherBeta
             };
             top.Controls.Add(languageCombo);
 
-            refreshButton = MakeButton("再読込", 620, 10, 100, 30);
+            refreshButton = MakeButton(T("Refresh"), 620, 10, 100, 30);
             refreshButton.Click += delegate { RefreshAll(); };
             top.Controls.Add(refreshButton);
 
-            folderSettingsButton = MakeButton("検索フォルダー設定", 730, 10, 135, 30);
-            folderSettingsButton.Click += delegate { tabs.SelectedTab = settingsTab; };
-            top.Controls.Add(folderSettingsButton);
-
-            playButton = MakeButton("DW2を起動", 875, 8, 260, 38);
+            playButton = MakeButton(T("PlayButton"), 735, 8, 260, 38);
             playButton.Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold);
             playButton.BackColor = Dw2Blue;
             playButton.MouseLeave += delegate { playButton.BackColor = Dw2Blue; };
@@ -139,10 +134,9 @@ namespace DW2ModLauncherBeta
             tabs.ItemSize = new Size(1, 1);
             shell.Controls.Add(tabs, 0, 2);
 
-            modsTab = new TabPage("MODS");
-            aiTab = new TabPage("AI Commander");
-            settingsTab = new TabPage("設定");
-            foreach (TabPage t in new TabPage[] { modsTab, aiTab, settingsTab })
+            modsTab = new TabPage(T("MODs"));
+            settingsTab = new TabPage(T("Settings"));
+            foreach (TabPage t in new TabPage[] { modsTab, settingsTab })
             {
                 t.BackColor = Dw2Panel;
                 t.ForeColor = Dw2Text;
@@ -155,22 +149,18 @@ namespace DW2ModLauncherBeta
             navigation.Padding = new Padding(8, 4, 8, 4);
             shell.Controls.Add(navigation, 0, 1);
 
-            modsNavigationButton = MakeButton("MODS", 8, 4, 175, 32);
-            aiNavigationButton = MakeButton("AI Commander", 191, 4, 150, 32);
-            settingsNavigationButton = MakeButton("設定", 349, 4, 110, 32);
+            modsNavigationButton = MakeButton(T("MODs"), 8, 4, 175, 32);
+            settingsNavigationButton = MakeButton(T("Settings"), 191, 4, 110, 32);
             modsNavigationButton.Click += delegate { tabs.SelectedTab = modsTab; };
-            aiNavigationButton.Click += delegate { tabs.SelectedTab = aiTab; };
             settingsNavigationButton.Click += delegate { tabs.SelectedTab = settingsTab; };
             navigation.Controls.Add(modsNavigationButton);
-            navigation.Controls.Add(aiNavigationButton);
             navigation.Controls.Add(settingsNavigationButton);
-            foreach (Button navigationButton in new Button[] { modsNavigationButton, aiNavigationButton, settingsNavigationButton })
+            foreach (Button navigationButton in new Button[] { modsNavigationButton, settingsNavigationButton })
                 navigationButton.MouseLeave += delegate { RefreshNavigationButtons(); };
             tabs.SelectedIndexChanged += delegate { RefreshNavigationButtons(); };
             RefreshNavigationButtons();
 
             BuildModsTab(modsTab);
-            BuildAiTab();
             BuildSettingsTab();
 
             statusLabel = new Label();
@@ -200,8 +190,8 @@ namespace DW2ModLauncherBeta
 
         private void RefreshNavigationButtons()
         {
-            Button[] buttons = new Button[] { modsNavigationButton, aiNavigationButton, settingsNavigationButton };
-            TabPage[] pages = new TabPage[] { modsTab, aiTab, settingsTab };
+            Button[] buttons = new Button[] { modsNavigationButton, settingsNavigationButton };
+            TabPage[] pages = new TabPage[] { modsTab, settingsTab };
             for (int i = 0; i < buttons.Length; i++)
             {
                 Button button = buttons[i];
@@ -267,15 +257,15 @@ namespace DW2ModLauncherBeta
             list.BackColor = Dw2Deep;
             list.ForeColor = Dw2Text;
             list.BorderStyle = BorderStyle.FixedSingle;
-            list.Columns.Add("MOD名", 180);
-            list.Columns.Add("Source", 105);
-            list.Columns.Add("付属ツール", 115);
-            list.Columns.Add("付属文書", 115);
-            list.Columns.Add("MOD状態", 100);
-            list.Columns.Add("競合状態", 115);
-            list.Columns.Add("重複状態", 110);
-            list.Columns.Add("更新状態", 95);
-            list.Columns.Add("ロード順", 65);
+            list.Columns.Add(T("MODName"), 180);
+            list.Columns.Add(T("Source"), 105);
+            list.Columns.Add(T("IncludedToolsColumn"), 115);
+            list.Columns.Add(T("IncludedDocs"), 115);
+            list.Columns.Add(T("MODState"), 100);
+            list.Columns.Add(T("ConflictState"), 115);
+            list.Columns.Add(T("DuplicateState"), 110);
+            list.Columns.Add(T("UpdateState"), 95);
+            list.Columns.Add(T("LoadOrder"), 65);
             list.ColumnClick += delegate(object sender, ColumnClickEventArgs e)
             {
                 int previous;
@@ -323,25 +313,25 @@ namespace DW2ModLauncherBeta
             leftTop.Height = 78;
             leftTop.BackColor = Dw2Panel;
 
-            modRootButton = MakeButton("MODルート", 8, 7, 110, 30);
+            modRootButton = MakeButton(T("MODRoot"), 8, 7, 110, 30);
             modRootButton.Click += delegate { OpenFolder(settings.ManagedModsRoot); };
             leftTop.Controls.Add(modRootButton);
 
-            workshopRootButton = MakeButton("Workshopルート", 126, 7, 130, 30);
+            workshopRootButton = MakeButton(T("WorkshopRoot"), 126, 7, 130, 30);
             workshopRootButton.Click += delegate { OpenFolder(settings.WorkshopRoot); };
             leftTop.Controls.Add(workshopRootButton);
 
-            selectedFolderButton = MakeButton("選択MODフォルダー", 264, 7, 150, 30);
+            selectedFolderButton = MakeButton(T("SelectedMODFolder"), 264, 7, 150, 30);
             selectedFolderButton.Enabled = false;
             selectedFolderButton.Click += delegate { OpenSelectedModFolder(list); };
             leftTop.Controls.Add(selectedFolderButton);
 
-            iniButton = MakeButton("INI個別設定", 422, 7, 115, 30);
+            iniButton = MakeButton(T("INISettings"), 422, 7, 115, 30);
             iniButton.Enabled = false;
             iniButton.Click += delegate { OpenSelectedManagedIniEditor(); };
             leftTop.Controls.Add(iniButton);
 
-            detailsButton = MakeButton("詳細", 545, 7, 70, 30);
+            detailsButton = MakeButton(T("Details"), 545, 7, 70, 30);
             detailsButton.Enabled = false;
             detailsButton.Click += delegate { OpenSelectedModDetails(list); };
             leftTop.Controls.Add(detailsButton);
@@ -358,11 +348,11 @@ namespace DW2ModLauncherBeta
             documentsButton.Click += delegate { OpenSelectedModDocument(list); };
             leftTop.Controls.Add(documentsButton);
 
-            workshopUpdateButton = MakeButton("更新確認", 204, 41, 130, 30);
+            workshopUpdateButton = MakeButton(T("CheckUpdates"), 204, 41, 130, 30);
             workshopUpdateButton.Click += delegate { BeginWorkshopUpdateCheck(true); };
             leftTop.Controls.Add(workshopUpdateButton);
 
-            workshopSteamButton = MakeButton("Steamページ", 342, 41, 110, 30);
+            workshopSteamButton = MakeButton(T("SteamPage"), 342, 41, 110, 30);
             workshopSteamButton.Enabled = false;
             workshopSteamButton.Click += delegate { OpenSelectedWorkshopPage(); };
             leftTop.Controls.Add(workshopSteamButton);
@@ -448,87 +438,6 @@ namespace DW2ModLauncherBeta
             modDesc = desc;
         }
 
-        private void BuildAiTab()
-        {
-            Panel p = new Panel();
-            p.Dock = DockStyle.Fill;
-            p.AutoScroll = true;
-            p.Padding = new Padding(22);
-            aiTab.Controls.Add(p);
-
-            Label header = new Label();
-            header.Name = "AiHeader";
-            header.Text = "AI Commander 基本設定";
-            header.Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold);
-            header.ForeColor = Dw2Gold;
-            header.AutoSize = true;
-            header.Location = new Point(24, 20);
-            p.Controls.Add(header);
-
-            aiIniPathLabel = new Label();
-            aiIniPathLabel.Location = new Point(26, 58);
-            aiIniPathLabel.Size = new Size(900, 22);
-            aiIniPathLabel.AutoEllipsis = true;
-            aiIniPathLabel.ForeColor = Dw2Muted;
-            p.Controls.Add(aiIniPathLabel);
-
-            aiEnabled = MakeCheckBox("MOD全体", 28, 100);
-            aiWar = MakeCheckBox("AI開戦判断", 28, 136);
-            aiPeace = MakeCheckBox("AI停戦判断", 28, 172);
-            aiUltimatum = MakeCheckBox("最後通牒", 28, 208);
-            aiAdvisor = MakeCheckBox("補佐官", 28, 244);
-            p.Controls.Add(aiEnabled);
-            p.Controls.Add(aiWar);
-            p.Controls.Add(aiPeace);
-            p.Controls.Add(aiUltimatum);
-            p.Controls.Add(aiAdvisor);
-
-            AddLabeledTextBox(p, "Backend", 320, 102, out aiBackend);
-            AddLabeledTextBox(p, "Base URL", 320, 160, out aiBaseUrl);
-            AddLabeledTextBox(p, "Model", 320, 218, out aiModel);
-
-            reloadAiButton = MakeButton("INI再読込", 28, 310, 140, 34);
-            saveAiButton = MakeButton("INIへ保存", 182, 310, 140, 34);
-            reloadAiButton.Click += delegate { LoadAiSettings(); };
-            saveAiButton.Click += delegate { SaveAiSettings(); };
-            p.Controls.Add(reloadAiButton);
-            p.Controls.Add(saveAiButton);
-
-            Label note = new Label();
-            note.Name = "AiNote";
-            note.Location = new Point(28, 375);
-            note.Size = new Size(900, 70);
-            note.ForeColor = Dw2Muted;
-            note.Text = "ランチャーの言語変更は Language=ja/en にも反映します。\r\nこのベータ版では主要なON/OFF項目だけをGUI化しています。";
-            p.Controls.Add(note);
-        }
-
-        private CheckBox MakeCheckBox(string text, int x, int y)
-        {
-            CheckBox c = new CheckBox();
-            c.Text = text;
-            c.Location = new Point(x, y);
-            c.AutoSize = true;
-            c.ForeColor = Dw2Text;
-            return c;
-        }
-
-        private void AddLabeledTextBox(Control parent, string label, int x, int y, out TextBox box)
-        {
-            Label l = new Label();
-            l.Text = label;
-            l.AutoSize = true;
-            l.Location = new Point(x, y);
-            parent.Controls.Add(l);
-            box = new TextBox();
-            box.Location = new Point(x, y + 22);
-            box.Width = 520;
-            box.BackColor = Dw2Void;
-            box.ForeColor = Dw2Text;
-            box.BorderStyle = BorderStyle.FixedSingle;
-            parent.Controls.Add(box);
-        }
-
         private void BuildSettingsTab()
         {
             Panel p = new Panel();
@@ -539,7 +448,7 @@ namespace DW2ModLauncherBeta
 
             Label header = new Label();
             header.Name = "SettingsHeader";
-            header.Text = "パスと起動設定";
+            header.Text = T("PathsAndLaunchSettings");
             header.Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold);
             header.ForeColor = Dw2Gold;
             header.AutoSize = true;
@@ -552,7 +461,7 @@ namespace DW2ModLauncherBeta
 
             Label argLabel = new Label();
             argLabel.Name = "LaunchArgumentsLabel";
-            argLabel.Text = "追加起動オプション";
+            argLabel.Text = T("AdditionalLaunchArguments");
             argLabel.Location = new Point(28, 260);
             argLabel.AutoSize = true;
             p.Controls.Add(argLabel);
@@ -567,7 +476,7 @@ namespace DW2ModLauncherBeta
 
             Label cmdLabel = new Label();
             cmdLabel.Name = "CommandPreviewLabel";
-            cmdLabel.Text = "実際に使用する起動コマンド";
+            cmdLabel.Text = T("EffectiveLaunchCommand");
             cmdLabel.Location = new Point(28, 330);
             cmdLabel.AutoSize = true;
             p.Controls.Add(cmdLabel);
@@ -581,9 +490,9 @@ namespace DW2ModLauncherBeta
             commandPreviewBox.BorderStyle = BorderStyle.FixedSingle;
             p.Controls.Add(commandPreviewBox);
 
-            detectButton = MakeButton("自動検出", 28, 468, 130, 34);
-            saveSettingsButton = MakeButton("設定を保存", 172, 468, 130, 34);
-            gameOpenButton = MakeButton("ゲームフォルダー", 316, 468, 150, 34);
+            detectButton = MakeButton(T("AutoDetect"), 28, 468, 130, 34);
+            saveSettingsButton = MakeButton(T("SaveSettings"), 172, 468, 130, 34);
+            gameOpenButton = MakeButton(T("GameFolder"), 316, 468, 150, 34);
             detectButton.Click += delegate { DetectPaths(true); RefreshAll(); };
             saveSettingsButton.Click += delegate { SaveSettingsFromUi(); RefreshAll(); };
             gameOpenButton.Click += delegate { OpenFolder(settings.GameRoot); };
@@ -680,15 +589,12 @@ namespace DW2ModLauncherBeta
         {
             if (modsTab == null) return;
             modsTab.Text = T("MODs");
-            aiTab.Text = "AI Commander";
             settingsTab.Text = T("Settings");
             refreshButton.Text = T("Refresh");
             playButton.Text = T("PlayButton");
             if (modsNavigationButton != null) modsNavigationButton.Text = T("MODs");
-            if (aiNavigationButton != null) aiNavigationButton.Text = "AI Commander";
             if (settingsNavigationButton != null) settingsNavigationButton.Text = T("Settings");
             RefreshNavigationButtons();
-            if (folderSettingsButton != null) folderSettingsButton.Text = T("ScanFolders");
             if (modRootButton != null) modRootButton.Text = T("MODRoot");
             if (workshopRootButton != null) workshopRootButton.Text = T("WorkshopRoot");
             if (selectedFolderButton != null) selectedFolderButton.Text = T("SelectedMODFolder");
@@ -700,18 +606,9 @@ namespace DW2ModLauncherBeta
             if (modToolsButton != null) modToolsButton.Text = T("RunTool");
             Control modDocumentsButton = FindControlRecursive(this, "ModDocumentsButton");
             if (modDocumentsButton != null) modDocumentsButton.Text = T("OpenDocs");
-            if (saveAiButton != null) saveAiButton.Text = T("SaveINI");
-            if (reloadAiButton != null) reloadAiButton.Text = T("ReloadINI");
             if (detectButton != null) detectButton.Text = T("AutoDetect");
             if (saveSettingsButton != null) saveSettingsButton.Text = T("SaveSettings");
             if (gameOpenButton != null) gameOpenButton.Text = T("GameFolder");
-            if (aiEnabled != null) aiEnabled.Text = T("EnableMOD");
-            if (aiWar != null) aiWar.Text = T("AIWarDecisions");
-            if (aiPeace != null) aiPeace.Text = T("AIPeaceDecisions");
-            if (aiUltimatum != null) aiUltimatum.Text = T("Ultimatums");
-            if (aiAdvisor != null) aiAdvisor.Text = T("Advisor");
-            Control aiHeader = FindControlRecursive(this, "AiHeader");
-            if (aiHeader != null) aiHeader.Text = T("AICommanderBasicSettings");
             Control settingsHeader = FindControlRecursive(this, "SettingsHeader");
             if (settingsHeader != null) settingsHeader.Text = T("PathsAndLaunchSettings");
             Control launchArgumentsLabel = FindControlRecursive(this, "LaunchArgumentsLabel");
@@ -752,8 +649,6 @@ namespace DW2ModLauncherBeta
 
             RefreshListSourceText(modList);
 
-            Control aiNote = FindControlRecursive(this, "AiNote");
-            if (aiNote != null) aiNote.Text = T("AiCommanderNote");
             Control beta = FindControlRecursive(this, "BetaNote");
             if (beta != null) beta.Text = T("BetaReleaseNote");
         }
