@@ -16,10 +16,9 @@ namespace DW2ModLauncherBeta
             shell.Margin = new Padding(0);
             shell.Padding = new Padding(0);
             shell.ColumnCount = 1;
-            shell.RowCount = 4;
+            shell.RowCount = 3;
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 92F));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             Controls.Add(shell);
@@ -79,7 +78,7 @@ namespace DW2ModLauncherBeta
                 e.DrawFocusRectangle();
             };
             languageCombo.Width = 46;
-            languageCombo.Location = new Point(370, 12);
+            languageCombo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             languageCombo.SelectedIndex = Math.Max(0, languageCodes.IndexOf(settings.Language));
             languageCombo.SelectedIndexChanged += delegate
             {
@@ -96,16 +95,40 @@ namespace DW2ModLauncherBeta
             };
             top.Controls.Add(languageCombo);
 
-            refreshButton = MakeButton(T("Refresh"), 620, 10, 100, 30);
-            refreshButton.Click += delegate { RefreshAll(); };
-            top.Controls.Add(refreshButton);
+            // The whole button cluster is anchored to the top-right corner so it
+            // hugs the right edge of the window instead of trailing off with a
+            // gap on wider screens.
+            int rightMargin = 14;
+            int buttonTop = 10;
 
-            playButton = MakeButton(T("PlayButton"), 735, 8, 260, 38);
+            playButton = MakeButton(T("PlayButton"), 0, 8, 260, 38);
             playButton.Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold);
             playButton.BackColor = Dw2Blue;
             playButton.MouseLeave += delegate { playButton.BackColor = Dw2Blue; };
             playButton.Click += delegate { LaunchGame(); };
+            playButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             top.Controls.Add(playButton);
+
+            refreshButton = MakeButton(T("Refresh"), 0, buttonTop, 100, 30);
+            refreshButton.Click += delegate { RefreshAll(); };
+            refreshButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            top.Controls.Add(refreshButton);
+
+            settingsNavigationButton = MakeButton(T("Settings"), 0, buttonTop, 110, 30);
+            settingsNavigationButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            top.Controls.Add(settingsNavigationButton);
+
+            modsNavigationButton = MakeButton(T("MODs"), 0, buttonTop, 110, 30);
+            modsNavigationButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            top.Controls.Add(modsNavigationButton);
+
+            int panelWidth = top.ClientSize.Width > 0 ? top.ClientSize.Width : ClientSize.Width;
+            int cursorX = panelWidth - rightMargin;
+            cursorX -= playButton.Width; playButton.Location = new Point(cursorX, playButton.Top);
+            cursorX -= 10 + refreshButton.Width; refreshButton.Location = new Point(cursorX, refreshButton.Top);
+            cursorX -= 10 + settingsNavigationButton.Width; settingsNavigationButton.Location = new Point(cursorX, settingsNavigationButton.Top);
+            cursorX -= 10 + modsNavigationButton.Width; modsNavigationButton.Location = new Point(cursorX, modsNavigationButton.Top);
+            cursorX -= 16 + languageCombo.Width; languageCombo.Location = new Point(cursorX, 12);
 
             gamePathLabel = new Label();
             gamePathLabel.AutoEllipsis = true;
@@ -132,7 +155,7 @@ namespace DW2ModLauncherBeta
             tabs.DrawMode = TabDrawMode.Normal;
             tabs.SizeMode = TabSizeMode.Fixed;
             tabs.ItemSize = new Size(1, 1);
-            shell.Controls.Add(tabs, 0, 2);
+            shell.Controls.Add(tabs, 0, 1);
 
             modsTab = new TabPage(T("MODs"));
             settingsTab = new TabPage(T("Settings"));
@@ -143,18 +166,8 @@ namespace DW2ModLauncherBeta
                 tabs.TabPages.Add(t);
             }
 
-            Panel navigation = new Panel();
-            navigation.Dock = DockStyle.Fill;
-            navigation.BackColor = Dw2Deep;
-            navigation.Padding = new Padding(8, 4, 8, 4);
-            shell.Controls.Add(navigation, 0, 1);
-
-            modsNavigationButton = MakeButton(T("MODs"), 8, 4, 175, 32);
-            settingsNavigationButton = MakeButton(T("Settings"), 191, 4, 110, 32);
             modsNavigationButton.Click += delegate { tabs.SelectedTab = modsTab; };
             settingsNavigationButton.Click += delegate { tabs.SelectedTab = settingsTab; };
-            navigation.Controls.Add(modsNavigationButton);
-            navigation.Controls.Add(settingsNavigationButton);
             foreach (Button navigationButton in new Button[] { modsNavigationButton, settingsNavigationButton })
                 navigationButton.MouseLeave += delegate { RefreshNavigationButtons(); };
             tabs.SelectedIndexChanged += delegate { RefreshNavigationButtons(); };
@@ -168,7 +181,7 @@ namespace DW2ModLauncherBeta
             statusLabel.Padding = new Padding(10, 6, 0, 0);
             statusLabel.BackColor = Dw2Void;
             statusLabel.ForeColor = Dw2Muted;
-            shell.Controls.Add(statusLabel, 0, 3);
+            shell.Controls.Add(statusLabel, 0, 2);
         }
 
         private Button MakeButton(string text, int x, int y, int w, int h)
@@ -257,15 +270,21 @@ namespace DW2ModLauncherBeta
             list.BackColor = Dw2Deep;
             list.ForeColor = Dw2Text;
             list.BorderStyle = BorderStyle.FixedSingle;
-            list.Columns.Add(T("MODName"), 180);
-            list.Columns.Add(T("Source"), 105);
-            list.Columns.Add(T("IncludedToolsColumn"), 115);
-            list.Columns.Add(T("IncludedDocs"), 115);
-            list.Columns.Add(T("MODState"), 100);
-            list.Columns.Add(T("ConflictState"), 115);
-            list.Columns.Add(T("DuplicateState"), 110);
-            list.Columns.Add(T("UpdateState"), 95);
-            list.Columns.Add(T("LoadOrder"), 65);
+            // ColumnHeader widths aren't Controls, so they're untouched by the
+            // DPI Scale() pass applied to the rest of the tree in the constructor;
+            // scale them here by the same real-DPI ratio so they don't end up
+            // undersized relative to the (now DPI-correct) text they hold.
+            float columnDpiScale = DeviceDpi / 96f;
+            Func<int, int> col = w => (int)Math.Round(w * columnDpiScale);
+            list.Columns.Add(T("MODName"), col(230));
+            list.Columns.Add(T("Source"), col(120));
+            list.Columns.Add(T("IncludedToolsColumn"), col(135));
+            list.Columns.Add(T("IncludedDocs"), col(135));
+            list.Columns.Add(T("MODState"), col(120));
+            list.Columns.Add(T("ConflictState"), col(135));
+            list.Columns.Add(T("DuplicateState"), col(125));
+            list.Columns.Add(T("UpdateState"), col(100));
+            list.Columns.Add(T("LoadOrder"), col(75));
             list.ColumnClick += delegate(object sender, ColumnClickEventArgs e)
             {
                 int previous;

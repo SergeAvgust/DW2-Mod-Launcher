@@ -145,6 +145,7 @@ namespace DW2ModLauncherBeta
 
             Text = "DW2 Mod Launcher BETA v0.4.6 CONFLICT FILTER FIX";
             StartPosition = FormStartPosition.CenterScreen;
+            AutoScaleMode = AutoScaleMode.None;
             MinimumSize = new Size(1000, 650);
             Rectangle workArea = Screen.PrimaryScreen == null ? new Rectangle(0, 0, 1500, 900) : Screen.PrimaryScreen.WorkingArea;
             Size = new Size(Math.Max(1000, Math.Min(1500, workArea.Width - 40)), Math.Max(650, Math.Min(860, workArea.Height - 60)));
@@ -152,7 +153,25 @@ namespace DW2ModLauncherBeta
             ForeColor = Dw2Text;
             Font = new Font("Segoe UI", 9F);
 
+            // The whole UI below is laid out with pixel coordinates authored for a
+            // 96 DPI screen. Windows Forms does not auto-scale a manually built
+            // control tree like this, so on a scaled-DPI monitor the (now DPI-aware,
+            // crisp) text renders larger than the hand-placed control bounds expect
+            // and gets clipped. Scale the built tree - and grow the window to match -
+            // by the real DPI ratio so the layout keeps its proportions.
+            float dpiScale = DeviceDpi / 96f;
+
             BuildUi();
+
+            if (dpiScale > 1.01f)
+            {
+                SuspendLayout();
+                foreach (Control child in Controls) child.Scale(new SizeF(dpiScale, dpiScale));
+                MinimumSize = new Size((int)Math.Round(MinimumSize.Width * dpiScale), (int)Math.Round(MinimumSize.Height * dpiScale));
+                Size = new Size((int)Math.Round(Size.Width * dpiScale), (int)Math.Round(Size.Height * dpiScale));
+                ResumeLayout(true);
+            }
+
             SafeStage("DetectPaths", delegate { DetectPaths(false); });
             SafeStage("ApplyLanguage", delegate { ApplyLanguage(); });
             SafeStage("RefreshAll", delegate { RefreshAll(); });
