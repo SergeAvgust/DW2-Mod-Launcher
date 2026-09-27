@@ -55,7 +55,7 @@ namespace DW2ModLauncherBeta
             languageCombo.ItemHeight = 22;
             languageCombo.DropDownWidth = 150;
             foreach (string code in languageCodes) languageCombo.Items.Add(code);
-            languageCombo.DrawItem += delegate(object sender, DrawItemEventArgs e)
+            languageCombo.DrawItem += delegate (object sender, DrawItemEventArgs e)
             {
                 if (e.Index < 0 || e.Index >= languageCodes.Count) { e.DrawBackground(); return; }
                 string itemCode = languageCodes[e.Index];
@@ -233,15 +233,15 @@ namespace DW2ModLauncherBeta
             list.AllowDrop = true;
             list.Scrollable = true;
             list.OwnerDraw = true;
-            list.DrawColumnHeader += delegate(object sender, DrawListViewColumnHeaderEventArgs e)
+            list.DrawColumnHeader += delegate (object sender, DrawListViewColumnHeaderEventArgs e)
             {
                 using (SolidBrush back = new SolidBrush(Dw2Steel)) e.Graphics.FillRectangle(back, e.Bounds);
                 using (Pen edge = new Pen(Dw2Blue)) e.Graphics.DrawRectangle(edge, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
                 TextRenderer.DrawText(e.Graphics, e.Header.Text, list.Font, new Rectangle(e.Bounds.X + 7, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
                     Dw2Gold, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
             };
-            list.DrawItem += delegate(object sender, DrawListViewItemEventArgs e) { };
-            list.DrawSubItem += delegate(object sender, DrawListViewSubItemEventArgs e)
+            list.DrawItem += delegate (object sender, DrawListViewItemEventArgs e) { };
+            list.DrawSubItem += delegate (object sender, DrawListViewSubItemEventArgs e)
             {
                 bool selected = e.Item.Selected;
                 Color background = selected ? Dw2Steel : e.SubItem.BackColor;
@@ -287,11 +287,11 @@ namespace DW2ModLauncherBeta
             // so the header row's background always reaches the right edge instead
             // of leaving a plain white gap after the last column.
             list.Resize += delegate { FitModListColumns(list); };
-            list.ColumnWidthChanged += delegate(object sender, ColumnWidthChangedEventArgs e)
+            list.ColumnWidthChanged += delegate (object sender, ColumnWidthChangedEventArgs e)
             {
                 if (e.ColumnIndex != 0) FitModListColumns(list);
             };
-            list.ColumnClick += delegate(object sender, ColumnClickEventArgs e)
+            list.ColumnClick += delegate (object sender, ColumnClickEventArgs e)
             {
                 int previous;
                 bool ascending;
@@ -307,12 +307,12 @@ namespace DW2ModLauncherBeta
                 list.Sort();
                 ApplyAlternatingRowColors(list);
             };
-            list.ItemDrag += delegate(object sender, ItemDragEventArgs e) { list.DoDragDrop(e.Item, DragDropEffects.Move); };
-            list.DragEnter += delegate(object sender, DragEventArgs e)
+            list.ItemDrag += delegate (object sender, ItemDragEventArgs e) { list.DoDragDrop(e.Item, DragDropEffects.Move); };
+            list.DragEnter += delegate (object sender, DragEventArgs e)
             {
                 e.Effect = e.Data.GetDataPresent(typeof(ListViewItem)) ? DragDropEffects.Move : DragDropEffects.None;
             };
-            list.DragDrop += delegate(object sender, DragEventArgs e)
+            list.DragDrop += delegate (object sender, DragEventArgs e)
             {
                 ListViewItem moving = e.Data.GetData(typeof(ListViewItem)) as ListViewItem;
                 if (moving == null || moving.ListView != list) return;
@@ -409,7 +409,7 @@ namespace DW2ModLauncherBeta
             detail.Dock = DockStyle.Fill;
             detail.Padding = new Padding(14);
             detail.BackColor = Dw2PanelAlt;
-            detail.Paint += delegate(object sender, PaintEventArgs e)
+            detail.Paint += delegate (object sender, PaintEventArgs e)
             {
                 using (Pen frame = new Pen(Dw2Blue)) e.Graphics.DrawRectangle(frame, 0, 0, detail.ClientSize.Width - 1, detail.ClientSize.Height - 1);
             };
@@ -477,7 +477,7 @@ namespace DW2ModLauncherBeta
                 ShowModDetails(selectedMod, preview, name, problemsPanel, problemsLabel, desc);
             };
             list.DoubleClick += delegate { OpenSelectedModDetails(list); };
-            list.MouseClick += delegate(object sender, MouseEventArgs e) { ToggleModStateAtLocation(list, e.Location); };
+            list.MouseClick += delegate (object sender, MouseEventArgs e) { ToggleModStateAtLocation(list, e.Location); };
 
             modList = list;
             modImages = images;

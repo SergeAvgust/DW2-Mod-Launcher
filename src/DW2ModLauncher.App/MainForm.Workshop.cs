@@ -30,7 +30,7 @@ namespace DW2ModLauncherBeta
             string manifestPath = FindWorkshopManifestPath();
             List<string> ids = currentWorkshopMods.Where(m => m != null).Select(m => m.Id).Where(id => !string.IsNullOrWhiteSpace(id) && Regex.IsMatch(id, "^\\d+$")).Distinct().ToList();
             BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += delegate(object sender, DoWorkEventArgs e)
+            worker.DoWork += delegate (object sender, DoWorkEventArgs e)
             {
                 WorkshopUpdateCheckResult r = new WorkshopUpdateCheckResult();
                 try
@@ -52,7 +52,7 @@ namespace DW2ModLauncherBeta
                 catch (Exception ex) { r.Error = ex.Message; }
                 e.Result = r;
             };
-            worker.RunWorkerCompleted += delegate(object sender, RunWorkerCompletedEventArgs e)
+            worker.RunWorkerCompleted += delegate (object sender, RunWorkerCompletedEventArgs e)
             {
                 updateCheckRunning = false;
                 if (workshopUpdateButton != null) workshopUpdateButton.Enabled = true;

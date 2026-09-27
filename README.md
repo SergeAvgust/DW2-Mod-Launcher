@@ -2,7 +2,7 @@
 
 A community-oriented MOD launcher for **Distant Worlds 2**.
 
-Steam Workshop MODs and MODs installed in the game folder can be managed from one launcher.  
+Steam Workshop MODs and MODs installed in the game folder can be managed from one launcher.
 The project is developed as a hobby project, and contributions, improvements, forks, and continued development by the community are welcome.
 
 > This is an unofficial community project and is not affiliated with or endorsed by CodeForce, Slitherine, or Matrix Games.
@@ -45,13 +45,13 @@ This is a hobby project. Community contributions, improvements, bug fixes, forks
 Download or clone the repository, then run:
 
 ```text
-BUILD_BETA.cmd
+build.cmd
 ```
 
 To build and immediately launch the application, run:
 
 ```text
-BUILD_AND_RUN_BETA.cmd
+run.cmd
 ```
 
 Both scripts call `dotnet build` on [`DW2ModLauncher.sln`](DW2ModLauncher.sln). The project is split into
@@ -59,6 +59,19 @@ Both scripts call `dotnet build` on [`DW2ModLauncher.sln`](DW2ModLauncher.sln). 
 `DW2ModLauncher.App` (the WinForms launcher), and `DW2ModLauncher.Tests` (unit tests for the Core logic);
 see [AGENTS.md](AGENTS.md) for details. The built executable is
 `src\DW2ModLauncher.App\bin\Release\net8.0-windows\DW2ModLauncherBeta.exe`.
+
+By default, `build.cmd` (and `run.cmd`, which calls it) also fixes code formatting and runs the unit test suite —
+the same checks that run in CI — before building. Pass `--no-validate` to skip both and just build, for a faster
+local edit/build loop:
+
+```text
+build.cmd --no-validate
+run.cmd --no-validate
+```
+
+**Before opening a pull request, run `build.cmd` without `--no-validate`.** CI (GitHub Actions) runs the same
+formatting check, build, and unit tests on every PR, including from forks — if it doesn't pass locally, it won't
+pass there either, and you'll wait on a red build for nothing.
 
 ### Initial Setup
 
@@ -101,7 +114,10 @@ You are free to contribute:
 
 Pull Requests / Merge Requests, Issues, and suggestions are welcome.
 
-There is no guarantee that the original developer will maintain this project indefinitely.  
+Before opening a PR, run `build.cmd` (without `--no-validate`) — see [Building](#building) — so formatting, build,
+and tests are checked locally first, the same way CI checks them.
+
+There is no guarantee that the original developer will maintain this project indefinitely.
 If maintenance stops, the community is welcome to continue development under the terms of the MIT License.
 
 ### License
@@ -114,7 +130,7 @@ See [`LICENSE`](LICENSE) for details.
 
 ## Disclaimer
 
-Distant Worlds 2 and related names and assets belong to their respective owners.  
+Distant Worlds 2 and related names and assets belong to their respective owners.
 This launcher is an unofficial fan/community project.
 
 ## 日本語
@@ -125,7 +141,7 @@ This launcher is an unofficial fan/community project.
 
 Steam Workshopから導入したMODと、ゲーム本体のMODフォルダーに導入したMODをまとめて確認・管理できます。
 
-このプロジェクトは趣味として開発されています。  
+このプロジェクトは趣味として開発されています。
 機能追加、改善、バグ修正、フォーク、別バージョンの作成など、コミュニティによる自由な参加を歓迎します。
 
 ### 主な機能
@@ -154,7 +170,7 @@ Steam Workshopから導入したMODと、ゲーム本体のMODフォルダーに
 リポジトリをダウンロードまたはCloneした後、
 
 ```text
-BUILD_BETA.cmd
+build.cmd
 ```
 
 を実行してください。
@@ -162,7 +178,7 @@ BUILD_BETA.cmd
 ビルド後、そのままランチャーを起動する場合は、
 
 ```text
-BUILD_AND_RUN_BETA.cmd
+run.cmd
 ```
 
 を使用できます。
@@ -172,6 +188,19 @@ BUILD_AND_RUN_BETA.cmd
 `DW2ModLauncher.App`（WinForms製ランチャー本体）、`DW2ModLauncher.Tests`（Coreロジックの単体テスト）に
 分割されています。詳細は [AGENTS.md](AGENTS.md) を参照してください。ビルドされた実行ファイルは
 `src\DW2ModLauncher.App\bin\Release\net8.0-windows\DW2ModLauncherBeta.exe` です。
+
+`build.cmd`（およびそれを呼び出す `run.cmd`）は、既定ではビルドの前にコードの整形（自動修正）と単体テストの
+実行も行います。これはCIで実行されるチェックと同じものです。`--no-validate` を付けるとこの2つをスキップして
+そのままビルドだけを行うため、ローカルでの編集・ビルドのサイクルを速くできます。
+
+```text
+build.cmd --no-validate
+run.cmd --no-validate
+```
+
+**Pull Requestを送る前に、`--no-validate` を付けずに `build.cmd` を実行してください。** CI（GitHub Actions）は
+フォーク元からのPRも含め、すべてのPRに対して同じフォーマットチェック・ビルド・単体テストを実行します。
+ローカルで通らないものはCIでも通らないため、事前に確認しておくことで無駄な待ち時間を避けられます。
 
 ### 初期設定
 
@@ -212,7 +241,10 @@ Steam\steamapps\common\Distant Worlds 2
 
 Pull Request / Merge Request、Issue、提案なども歓迎します。
 
-開発者が将来このプロジェクトのメンテナンスを継続することを保証するものではありません。  
+PRを送る前に、`--no-validate` を付けずに `build.cmd` を実行してください（[ビルド方法](#ビルド方法)を参照）。
+CIと同じ内容（フォーマット・ビルド・テスト）をローカルで事前に確認できます。
+
+開発者が将来このプロジェクトのメンテナンスを継続することを保証するものではありません。
 その場合も、MIT Licenseの範囲内でコミュニティが自由に開発を継続できます。
 
 ### ライセンス
