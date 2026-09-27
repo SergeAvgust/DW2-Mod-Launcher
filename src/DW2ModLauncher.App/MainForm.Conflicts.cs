@@ -342,6 +342,8 @@ namespace DW2ModLauncherBeta
                 string full = Path.IsPathRooted(dll) ? dll : Path.Combine(settings.GameRoot ?? "", dll.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(full)) issues.Add("⚠ " + T("LaunchArgumentDLLNotFound") + dll);
             }
+            foreach (KeyValuePair<string, string> injection in CollectInjectionTargets(OrderedEnabledMods()))
+                if (!File.Exists(injection.Key)) issues.Add("⚠ " + T("LaunchArgumentDLLNotFound") + injection.Key);
             return issues.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 

@@ -10,24 +10,57 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm
     {
+        private List<ModInfo> OrderedEnabledMods()
+        {
+            List<ModInfo> launchMods = (currentManagedMods ?? new List<ModInfo>())
+                .Concat(currentWorkshopMods ?? new List<ModInfo>()).Where(IsModSelected).ToList();
+            return launchMods.OrderBy(m =>
+            {
+                int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => x.Equals(m.ActiveToken, StringComparison.OrdinalIgnoreCase));
+                return index < 0 ? int.MaxValue : index;
+            }).ToList();
+        }
+
+        // The game's own --low-level-inject flag accepts multiple space-separated
+        // "dll!entryPoint" targets, but only ONE occurrence of the flag actually
+        // takes effect - a second occurrence doesn't merge with the first. So every
+        // enabled mod's declarative injection target is collected here and composed
+        // into a single flag in BuildLaunchArguments, rather than letting each mod
+        // contribute its own separate --low-level-inject occurrence.
+        private List<KeyValuePair<string, string>> CollectInjectionTargets(List<ModInfo> orderedMods)
+        {
+            List<KeyValuePair<string, string>> targets = new List<KeyValuePair<string, string>>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ModInfo mod in orderedMods)
+            {
+                string modRoot = mod.ContentRoot ?? mod.Folder;
+                AddInjectionTarget(targets, seen, modRoot, mod.InjectionDll, mod.InjectionEntryPoint);
+                LauncherMeta meta = ReadLauncherMeta(mod);
+                if (meta != null && meta.injection != null)
+                    AddInjectionTarget(targets, seen, modRoot, meta.injection.dll, meta.injection.entryPoint);
+            }
+            return targets;
+        }
+
+        private void AddInjectionTarget(List<KeyValuePair<string, string>> targets, HashSet<string> seen, string modRoot, string dllRelative, string entryPoint)
+        {
+            if (string.IsNullOrWhiteSpace(modRoot) || string.IsNullOrWhiteSpace(dllRelative) || string.IsNullOrWhiteSpace(entryPoint)) return;
+            string full = Path.GetFullPath(Path.Combine(modRoot, dllRelative.Replace('/', Path.DirectorySeparatorChar)));
+            if (!seen.Add(full + "!" + entryPoint)) return;
+            targets.Add(new KeyValuePair<string, string>(full, entryPoint));
+        }
+
         private string BuildLaunchArguments()
         {
             EnsureSettingsState();
             List<string> args = new List<string>();
             HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            List<ModInfo> launchMods = (currentManagedMods ?? new List<ModInfo>())
-                .Concat(currentWorkshopMods ?? new List<ModInfo>()).Where(IsModSelected).ToList();
-            foreach (ModInfo mod in launchMods.OrderBy(m =>
+            List<ModInfo> orderedMods = OrderedEnabledMods();
+            List<KeyValuePair<string, string>> injections = CollectInjectionTargets(orderedMods);
+            if (injections.Count > 0)
             {
-                int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => x.Equals(m.ActiveToken, StringComparison.OrdinalIgnoreCase));
-                return index < 0 ? int.MaxValue : index;
-            }))
-            {
-                if (!string.IsNullOrWhiteSpace(mod.ModJsonLaunchArguments) && seen.Add(mod.ModJsonLaunchArguments.Trim()))
-                    args.Add(mod.ModJsonLaunchArguments.Trim());
-                LauncherMeta meta = ReadLauncherMeta(mod);
-                if (meta != null && !string.IsNullOrWhiteSpace(meta.launchArguments) && seen.Add(meta.launchArguments.Trim()))
-                    args.Add(meta.launchArguments.Trim());
+                List<string> tokens = injections.Select(t => (t.Key.IndexOf(' ') >= 0 ? "\"" + t.Key + "\"" : t.Key) + "!" + t.Value).ToList();
+                args.Add("--low-level-inject " + string.Join(" ", tokens));
             }
             string global = launchArgsBox == null ? settings.GlobalLaunchArguments : launchArgsBox.Text.Trim();
             if (!string.IsNullOrWhiteSpace(global) && seen.Add(global)) args.Add(global);

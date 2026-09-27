@@ -184,7 +184,6 @@ namespace DW2ModLauncherBeta
             b.AppendLine(Labeled("Source", mod.SourceName ?? ""));
             b.AppendLine(T("State") + (IsModSelected(mod) ? "ON" : "OFF"));
             b.AppendLine(mod.Folder ?? "");
-            if (!string.IsNullOrWhiteSpace(mod.ModJsonLaunchArguments)) b.AppendLine(T("AutomaticLaunchArguments") + mod.ModJsonLaunchArguments);
             if (mod.IncludedTools != null && mod.IncludedTools.Count > 0)
             {
                 b.AppendLine();
