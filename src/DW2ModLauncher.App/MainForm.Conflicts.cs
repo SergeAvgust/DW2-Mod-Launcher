@@ -169,8 +169,7 @@ namespace DW2ModLauncherBeta
 
         private void RefreshModStatusColumns()
         {
-            RefreshOneModListStatus(managedList);
-            RefreshOneModListStatus(workshopList);
+            RefreshOneModListStatus(modList);
             UpdateOverallStatus();
         }
 
@@ -241,10 +240,8 @@ namespace DW2ModLauncherBeta
 
         private void RefreshSelectedDetails()
         {
-            if (managedList != null && managedList.SelectedItems.Count > 0)
-                ShowModDetails(managedList.SelectedItems[0].Tag as ModInfo, managedPreview, managedName, managedDesc);
-            if (workshopList != null && workshopList.SelectedItems.Count > 0)
-                ShowModDetails(workshopList.SelectedItems[0].Tag as ModInfo, workshopPreview, workshopName, workshopDesc);
+            if (modList != null && modList.SelectedItems.Count > 0)
+                ShowModDetails(modList.SelectedItems[0].Tag as ModInfo, modPreview, modName, modDesc);
         }
 
         private void UpdateOverallStatus()

@@ -123,11 +123,11 @@ namespace DW2ModLauncherBeta
             settings.LastWorkshopUpdateCheckUtc = DateTime.UtcNow.ToString("o");
             SaveSettings();
             AnalyzeDuplicates();
-            if (workshopList != null)
-                foreach (ListViewItem item in workshopList.Items)
+            if (modList != null)
+                foreach (ListViewItem item in modList.Items)
                 {
                     ModInfo itemMod = item.Tag as ModInfo;
-                    if (itemMod != null) item.Text = itemMod.DisplayName ?? itemMod.Id;
+                    if (itemMod != null && itemMod.IsWorkshop) item.Text = itemMod.DisplayName ?? itemMod.Id;
                 }
             RefreshModStatusColumns();
             RefreshSelectedDetails();
@@ -177,13 +177,13 @@ namespace DW2ModLauncherBeta
 
         private void OpenSelectedWorkshopPage()
         {
-            if (workshopList == null || workshopList.SelectedItems.Count == 0)
+            if (modList == null || modList.SelectedItems.Count == 0)
             {
                 MessageBox.Show(T("Workshop MODを1つ選択してください。", "Select a Workshop mod first."), Text);
                 return;
             }
-            ModInfo mod = workshopList.SelectedItems[0].Tag as ModInfo;
-            if (mod == null || string.IsNullOrWhiteSpace(mod.Id)) return;
+            ModInfo mod = modList.SelectedItems[0].Tag as ModInfo;
+            if (mod == null || !mod.IsWorkshop || string.IsNullOrWhiteSpace(mod.Id)) return;
             try
             {
                 Process.Start("steam://url/CommunityFilePage/" + mod.Id);

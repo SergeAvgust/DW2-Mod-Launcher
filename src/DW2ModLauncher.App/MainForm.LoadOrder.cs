@@ -149,17 +149,14 @@ namespace DW2ModLauncherBeta
 
         private void RefreshLoadOrderNumbers()
         {
-            foreach (ListView list in new ListView[] { managedList, workshopList })
+            if (modList == null) return;
+            foreach (ListViewItem item in modList.Items)
             {
-                if (list == null) continue;
-                foreach (ListViewItem item in list.Items)
-                {
-                    ModInfo mod = item.Tag as ModInfo;
-                    if (mod == null || item.SubItems.Count < 9) continue;
-                    int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
-                    item.SubItems[8].Text = index < 0 ? "—" : (index + 1).ToString(CultureInfo.InvariantCulture);
-                    item.SubItems[8].ForeColor = index < 0 ? Dw2Muted : Dw2Gold;
-                }
+                ModInfo mod = item.Tag as ModInfo;
+                if (mod == null || item.SubItems.Count < 9) continue;
+                int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
+                item.SubItems[8].Text = index < 0 ? "—" : (index + 1).ToString(CultureInfo.InvariantCulture);
+                item.SubItems[8].ForeColor = index < 0 ? Dw2Muted : Dw2Gold;
             }
         }
 

@@ -45,8 +45,8 @@ namespace DW2ModLauncherBeta
             RefreshAiCommanderAvailability();
             if (currentCollisions == null) currentCollisions = new Dictionary<string, List<ModInfo>>(StringComparer.OrdinalIgnoreCase);
 
-            SafeStage("Populate Metapo list", delegate { PopulateList(managedList, managedImages, currentManagedMods, true); });
-            SafeStage("Populate Workshop list", delegate { PopulateList(workshopList, workshopImages, currentWorkshopMods, false); });
+            List<ModInfo> combinedMods = OrderModsForDisplay(currentManagedMods.Concat(currentWorkshopMods).ToList());
+            SafeStage("Populate MOD list", delegate { PopulateList(modList, modImages, combinedMods); });
             SafeStage("Conflict analysis", delegate { AnalyzeConflicts(); });
             SafeStage("Duplicate analysis", delegate { AnalyzeDuplicates(); });
             SafeStage("Refresh status columns", delegate { RefreshModStatusColumns(); });
@@ -91,11 +91,11 @@ namespace DW2ModLauncherBeta
             if (tabs == null || aiTab == null || aiNavigationButton == null) return;
             bool found = (currentManagedMods ?? new List<ModInfo>()).Concat(currentWorkshopMods ?? new List<ModInfo>()).Any(IsAiCommanderMod);
             aiNavigationButton.Visible = found;
-            if (settingsNavigationButton != null) settingsNavigationButton.Left = found ? 517 : 359;
+            if (settingsNavigationButton != null) settingsNavigationButton.Left = found ? 349 : 191;
             bool tabExists = tabs.TabPages.Contains(aiTab);
             if (!found && tabExists)
             {
-                if (tabs.SelectedTab == aiTab) tabs.SelectedTab = managedTab;
+                if (tabs.SelectedTab == aiTab) tabs.SelectedTab = modsTab;
                 tabs.TabPages.Remove(aiTab);
             }
             else if (found && !tabExists)
@@ -142,7 +142,7 @@ namespace DW2ModLauncherBeta
             return bat ? T("● BATあり", "● BAT found") : T("● EXEあり", "● EXE found");
         }
 
-        private void PopulateList(ListView list, ImageList images, List<ModInfo> mods, bool managed)
+        private void PopulateList(ListView list, ImageList images, List<ModInfo> mods)
         {
             EnsureSettingsState();
             if (list == null || images == null) return;
@@ -174,7 +174,7 @@ namespace DW2ModLauncherBeta
                     item.SubItems.Add("");
                     item.SubItems.Add("");
                     item.SubItems.Add("");
-                    item.SubItems.Add(managed ? "—" : T("未確認", "Not checked"));
+                    item.SubItems.Add(!mod.IsWorkshop ? "—" : T("未確認", "Not checked"));
                     int orderIndex = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
                     item.SubItems.Add(orderIndex < 0 ? "—" : (orderIndex + 1).ToString(CultureInfo.InvariantCulture));
                     item.UseItemStyleForSubItems = false;

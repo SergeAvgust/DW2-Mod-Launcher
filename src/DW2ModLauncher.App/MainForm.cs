@@ -99,23 +99,17 @@ namespace DW2ModLauncherBeta
         private Label workshopPathLabel;
 
         private TabControl tabs;
-        private TabPage managedTab;
-        private TabPage workshopTab;
+        private TabPage modsTab;
         private TabPage aiTab;
         private TabPage settingsTab;
 
-        private ListView managedList;
-        private ListView workshopList;
+        private ListView modList;
         private readonly Dictionary<ListView, int> listSortColumns = new Dictionary<ListView, int>();
         private readonly Dictionary<ListView, bool> listSortAscending = new Dictionary<ListView, bool>();
-        private ImageList managedImages;
-        private ImageList workshopImages;
-        private PictureBox managedPreview;
-        private PictureBox workshopPreview;
-        private Label managedName;
-        private Label managedDesc;
-        private Label workshopName;
-        private Label workshopDesc;
+        private ImageList modImages;
+        private PictureBox modPreview;
+        private Label modName;
+        private Label modDesc;
 
         private CheckBox aiEnabled;
         private CheckBox aiWar;
@@ -134,9 +128,9 @@ namespace DW2ModLauncherBeta
         private ComboBox profileCombo;
         private TextBox commandPreviewBox;
 
-        private Button managedOpenButton;
-        private Button managedIniButton;
-        private Button workshopOpenButton;
+        private Button modRootButton;
+        private Button iniButton;
+        private Button workshopRootButton;
         private Button gameOpenButton;
         private Button saveAiButton;
         private Button reloadAiButton;
@@ -144,13 +138,10 @@ namespace DW2ModLauncherBeta
         private Button saveSettingsButton;
         private Button workshopUpdateButton;
         private Button workshopSteamButton;
-        private Button managedDetailsButton;
-        private Button workshopDetailsButton;
-        private Button managedSelectedFolderButton;
-        private Button workshopSelectedFolderButton;
+        private Button detailsButton;
+        private Button selectedFolderButton;
         private Button folderSettingsButton;
-        private Button managedNavigationButton;
-        private Button workshopNavigationButton;
+        private Button modsNavigationButton;
         private Button aiNavigationButton;
         private Button settingsNavigationButton;
         private ComboBox stateEditor;

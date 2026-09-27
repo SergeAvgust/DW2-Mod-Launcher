@@ -145,8 +145,8 @@ namespace DW2ModLauncherBeta
 
         private void OpenSelectedManagedIniEditor()
         {
-            if (managedList == null || managedList.SelectedItems.Count == 0) return;
-            ModInfo mod = managedList.SelectedItems[0].Tag as ModInfo;
+            if (modList == null || modList.SelectedItems.Count == 0) return;
+            ModInfo mod = modList.SelectedItems[0].Tag as ModInfo;
             OpenIniEditor(mod);
         }
 
