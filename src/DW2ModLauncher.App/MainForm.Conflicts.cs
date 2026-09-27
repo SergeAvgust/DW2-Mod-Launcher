@@ -263,7 +263,7 @@ namespace DW2ModLauncherBeta
         {
             List<string> issues = new List<string>();
             List<ModInfo> enabled = (currentManagedMods ?? new List<ModInfo>()).Concat(currentWorkshopMods ?? new List<ModInfo>()).Where(IsModSelected).ToList();
-            Func<ModInfo, string, bool> matches = delegate(ModInfo m, string identity)
+            Func<ModInfo, string, bool> matches = delegate (ModInfo m, string identity)
             {
                 if (m == null || string.IsNullOrWhiteSpace(identity)) return false;
                 string folder = Path.GetFileName(m.Folder ?? "");

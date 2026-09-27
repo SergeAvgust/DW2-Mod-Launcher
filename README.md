@@ -60,6 +60,19 @@ Both scripts call `dotnet build` on [`DW2ModLauncher.sln`](DW2ModLauncher.sln). 
 see [AGENTS.md](AGENTS.md) for details. The built executable is
 `src\DW2ModLauncher.App\bin\Release\net8.0-windows\DW2ModLauncherBeta.exe`.
 
+By default, `build.cmd` (and `run.cmd`, which calls it) also fixes code formatting and runs the unit test suite —
+the same checks that run in CI — before building. Pass `--no-validate` to skip both and just build, for a faster
+local edit/build loop:
+
+```text
+build.cmd --no-validate
+run.cmd --no-validate
+```
+
+**Before opening a pull request, run `build.cmd` without `--no-validate`.** CI (GitHub Actions) runs the same
+formatting check, build, and unit tests on every PR, including from forks — if it doesn't pass locally, it won't
+pass there either, and you'll wait on a red build for nothing.
+
 ### Initial Setup
 
 On first launch, configure the paths as needed:
@@ -100,6 +113,9 @@ You are free to contribute:
 - Alternate versions
 
 Pull Requests / Merge Requests, Issues, and suggestions are welcome.
+
+Before opening a PR, run `build.cmd` (without `--no-validate`) — see [Building](#building) — so formatting, build,
+and tests are checked locally first, the same way CI checks them.
 
 There is no guarantee that the original developer will maintain this project indefinitely.
 If maintenance stops, the community is welcome to continue development under the terms of the MIT License.
@@ -173,6 +189,19 @@ run.cmd
 分割されています。詳細は [AGENTS.md](AGENTS.md) を参照してください。ビルドされた実行ファイルは
 `src\DW2ModLauncher.App\bin\Release\net8.0-windows\DW2ModLauncherBeta.exe` です。
 
+`build.cmd`（およびそれを呼び出す `run.cmd`）は、既定ではビルドの前にコードの整形（自動修正）と単体テストの
+実行も行います。これはCIで実行されるチェックと同じものです。`--no-validate` を付けるとこの2つをスキップして
+そのままビルドだけを行うため、ローカルでの編集・ビルドのサイクルを速くできます。
+
+```text
+build.cmd --no-validate
+run.cmd --no-validate
+```
+
+**Pull Requestを送る前に、`--no-validate` を付けずに `build.cmd` を実行してください。** CI（GitHub Actions）は
+フォーク元からのPRも含め、すべてのPRに対して同じフォーマットチェック・ビルド・単体テストを実行します。
+ローカルで通らないものはCIでも通らないため、事前に確認しておくことで無駄な待ち時間を避けられます。
+
 ### 初期設定
 
 初回起動時に必要に応じて以下の場所を指定してください。
@@ -211,6 +240,9 @@ Steam\steamapps\common\Distant Worlds 2
 - 独自バージョンの開発
 
 Pull Request / Merge Request、Issue、提案なども歓迎します。
+
+PRを送る前に、`--no-validate` を付けずに `build.cmd` を実行してください（[ビルド方法](#ビルド方法)を参照）。
+CIと同じ内容（フォーマット・ビルド・テスト）をローカルで事前に確認できます。
 
 開発者が将来このプロジェクトのメンテナンスを継続することを保証するものではありません。
 その場合も、MIT Licenseの範囲内でコミュニティが自由に開発を継続できます。

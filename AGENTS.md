@@ -41,9 +41,19 @@ run.cmd
 ```
 
 Both wrap `dotnet build DW2ModLauncher.sln -c Release`. Requires the .NET 8 SDK and Windows (the app targets
-`net8.0-windows` / WinForms). Run tests with `dotnet test src/DW2ModLauncher.Tests`. When adding new logic, prefer
+`net8.0-windows` / WinForms). `build.cmd` (and `run.cmd`, which calls it) also validates formatting and runs the
+test suite before building, the same gates CI uses, and fails fast with a message if either would fail CI; pass
+`--no-validate` to skip straight to `dotnet build` for a fast local iteration loop. When adding new logic, prefer
 putting anything that doesn't need a `Form`/`Control` in `DW2ModLauncher.Core` so it can be unit tested — this is
 where load-order/merge logic and DLL-injection argument building should live as those features are built out.
+
+## CI
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push to `main` and every pull request
+(including from forks), on `windows-latest` since the app targets `net8.0-windows`/WinForms. It gates on, in order:
+`dotnet format --verify-no-changes` (formatting), `dotnet build -c Release` (build), then `dotnet test` (unit
+tests) — the same checks `build.cmd` runs locally by default. Run `dotnet format DW2ModLauncher.sln` locally
+before pushing to fix formatting issues the check would otherwise catch.
 
 ## Conventions
 
