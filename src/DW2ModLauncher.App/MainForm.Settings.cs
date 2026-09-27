@@ -39,7 +39,7 @@ namespace DW2ModLauncherBeta
             }
             catch (Exception ex)
             {
-                SetStatus(T("設定保存エラー: ", "Settings save error: ") + ex.Message);
+                SetStatus("Settings save error: " + ex.Message);
             }
         }
 
@@ -51,17 +51,17 @@ namespace DW2ModLauncherBeta
             string managed = managedRootBox == null ? settings.ManagedModsRoot : (managedRootBox.Text ?? "").Trim();
             if (!string.IsNullOrWhiteSpace(game) && !IsGameRoot(game))
             {
-                MessageBox.Show(T("DistantWorlds2.exeがあるゲームフォルダーを指定してください。", "Select the game folder containing DistantWorlds2.exe."), Text);
+                MessageBox.Show(T("SelectGameFolderHint"), Text);
                 return;
             }
             if (!string.IsNullOrWhiteSpace(workshop) && !Directory.Exists(workshop))
             {
-                MessageBox.Show(T("Workshopフォルダーが見つかりません。", "The Workshop folder does not exist."), Text);
+                MessageBox.Show(T("WorkshopFolderMissing"), Text);
                 return;
             }
             if (!string.IsNullOrWhiteSpace(managed) && !Directory.Exists(managed))
             {
-                MessageBox.Show(T("DW2 MODフォルダーが見つかりません。", "The DW2 MOD folder does not exist."), Text);
+                MessageBox.Show(T("TheDW2MODFolderDoesNotExist"), Text);
                 return;
             }
             settings.GameRoot = game;
@@ -101,7 +101,7 @@ namespace DW2ModLauncherBeta
             string name = profileCombo == null ? "" : (profileCombo.Text ?? "").Trim();
             if (string.IsNullOrWhiteSpace(name))
             {
-                MessageBox.Show(T("プロファイル名を入力してください。", "Enter a profile name."), Text);
+                MessageBox.Show(T("EnterAProfileName"), Text);
                 return;
             }
             ModProfile profile = new ModProfile();
@@ -129,7 +129,7 @@ namespace DW2ModLauncherBeta
                 settings.GlobalLaunchArguments = profile.ManualLaunchArguments ?? "";
                 SaveSettings();
                 RefreshProfileCombo();
-                SetStatus(T("MODプロファイルを保存しました: ", "MOD profile saved: ") + name);
+                SetStatus(T("MODProfileSaved") + name);
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, Text); }
         }
@@ -138,8 +138,8 @@ namespace DW2ModLauncherBeta
         {
             string name = profileCombo == null ? "" : (profileCombo.Text ?? "").Trim();
             string path = Path.Combine(ProfilesRoot(), SafeFileName(name) + ".json");
-            if (!File.Exists(path)) { MessageBox.Show(T("プロファイルが見つかりません。", "Profile not found."), Text); return; }
-            if (IsGameRunning()) { MessageBox.Show(T("DW2を終了してから切り替えてください。", "Close DW2 before switching profiles."), Text); return; }
+            if (!File.Exists(path)) { MessageBox.Show(T("ProfileNotFound"), Text); return; }
+            if (IsGameRunning()) { MessageBox.Show(T("CloseGameBeforeProfileSwitch"), Text); return; }
             try
             {
                 ModProfile profile = JsonSerializer.Deserialize<ModProfile>(File.ReadAllText(path, Encoding.UTF8));
@@ -149,13 +149,13 @@ namespace DW2ModLauncherBeta
                 foreach (KeyValuePair<string, string> savedVersion in profile.Versions ?? new Dictionary<string, string>())
                 {
                     ModInfo installed = all.FirstOrDefault(m => string.Equals(m.ActiveToken, savedVersion.Key, StringComparison.OrdinalIgnoreCase) || string.Equals(m.Key, savedVersion.Key, StringComparison.OrdinalIgnoreCase));
-                    if (installed == null) versionChanges.Add(T("未導入: ", "Not installed: ") + savedVersion.Key);
+                    if (installed == null) versionChanges.Add(T("NotInstalled") + savedVersion.Key);
                     else if (!string.Equals(installed.Version ?? "", savedVersion.Value ?? "", StringComparison.OrdinalIgnoreCase))
                         versionChanges.Add((installed.DisplayName ?? installed.Id) + ": " + savedVersion.Value + " → " + (installed.Version ?? "?"));
                 }
                 if (versionChanges.Count > 0 && MessageBox.Show(
-                    T("保存時からMODバージョンが変わっています。\r\n", "MOD versions differ from the saved profile.\r\n") + string.Join("\r\n", versionChanges.Take(20).ToArray()) +
-                    T("\r\n\r\n構成を適用しますか？", "\r\n\r\nApply the profile?"), T("バージョン差異", "Version differences"),
+                    T("ProfileVersionMismatch") + string.Join("\r\n", versionChanges.Take(20).ToArray()) +
+                    T("ApplyTheProfile"), T("VersionDifferences"),
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
                 WriteModOrder(profile.Order ?? new List<string>());
                 settings.ActiveProfile = profile.Name ?? name;
@@ -176,7 +176,7 @@ namespace DW2ModLauncherBeta
                 }
                 SaveSettings();
                 RefreshAll();
-                SetStatus(T("MODプロファイルへ切り替えました: ", "Switched MOD profile: ") + settings.ActiveProfile);
+                SetStatus(T("SwitchedMODProfile") + settings.ActiveProfile);
             }
             catch (Exception ex) { Logger.LogException("Apply profile", ex); MessageBox.Show(ex.Message, Text); }
         }
@@ -207,7 +207,7 @@ namespace DW2ModLauncherBeta
                     manifest[mod.ActiveToken] = mod.Folder;
                 }
                 File.WriteAllText(Path.Combine(root, "snapshot_manifest.json"), JsonSerializer.Serialize(manifest), new UTF8Encoding(false));
-                MessageBox.Show(T("スナップショットを保存しました。\r\n", "Snapshot saved.\r\n") + root, Text);
+                MessageBox.Show(T("SnapshotSaved") + root, Text);
             }
             catch (Exception ex) { Logger.LogException("Create snapshot", ex); MessageBox.Show(ex.Message, Text); }
         }
@@ -216,10 +216,10 @@ namespace DW2ModLauncherBeta
         {
             string snapshots = Path.Combine(appRoot, "Snapshots");
             string root = Directory.Exists(snapshots) ? Directory.GetDirectories(snapshots).OrderByDescending(x => x).FirstOrDefault() : null;
-            if (string.IsNullOrWhiteSpace(root)) { MessageBox.Show(T("スナップショットがありません。", "No snapshot is available."), Text); return; }
-            if (IsGameRunning()) { MessageBox.Show(T("DW2を終了してから復元してください。", "Close DW2 before restoring."), Text); return; }
-            if (MessageBox.Show(T("最新のスナップショットへ戻しますか？\r\n", "Restore the latest snapshot?\r\n") + root,
-                T("スナップショット復元", "Restore snapshot"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            if (string.IsNullOrWhiteSpace(root)) { MessageBox.Show(T("NoSnapshotIsAvailable"), Text); return; }
+            if (IsGameRunning()) { MessageBox.Show(T("CloseDW2BeforeRestoring"), Text); return; }
+            if (MessageBox.Show(T("RestoreTheLatestSnapshot") + root,
+                T("RestoreSnapshot"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
             try
             {
                 string manifestPath = Path.Combine(root, "snapshot_manifest.json");
@@ -236,7 +236,7 @@ namespace DW2ModLauncherBeta
                 settings = LoadSettings();
                 EnsureSettingsState();
                 RefreshAll();
-                MessageBox.Show(T("最新のスナップショットを復元しました。", "Latest snapshot restored."), Text);
+                MessageBox.Show(T("LatestSnapshotRestored"), Text);
             }
             catch (Exception ex) { Logger.LogException("Restore snapshot", ex); MessageBox.Show(ex.Message, Text); }
         }

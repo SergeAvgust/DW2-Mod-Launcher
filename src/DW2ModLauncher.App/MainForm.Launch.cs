@@ -10,24 +10,57 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm
     {
+        private List<ModInfo> OrderedEnabledMods()
+        {
+            List<ModInfo> launchMods = (currentManagedMods ?? new List<ModInfo>())
+                .Concat(currentWorkshopMods ?? new List<ModInfo>()).Where(IsModSelected).ToList();
+            return launchMods.OrderBy(m =>
+            {
+                int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => x.Equals(m.ActiveToken, StringComparison.OrdinalIgnoreCase));
+                return index < 0 ? int.MaxValue : index;
+            }).ToList();
+        }
+
+        // The game's own --low-level-inject flag accepts multiple space-separated
+        // "dll!entryPoint" targets, but only ONE occurrence of the flag actually
+        // takes effect - a second occurrence doesn't merge with the first. So every
+        // enabled mod's declarative injection target is collected here and composed
+        // into a single flag in BuildLaunchArguments, rather than letting each mod
+        // contribute its own separate --low-level-inject occurrence.
+        private List<KeyValuePair<string, string>> CollectInjectionTargets(List<ModInfo> orderedMods)
+        {
+            List<KeyValuePair<string, string>> targets = new List<KeyValuePair<string, string>>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ModInfo mod in orderedMods)
+            {
+                string modRoot = mod.ContentRoot ?? mod.Folder;
+                AddInjectionTarget(targets, seen, modRoot, mod.InjectionDll, mod.InjectionEntryPoint);
+                LauncherMeta meta = ReadLauncherMeta(mod);
+                if (meta != null && meta.injection != null)
+                    AddInjectionTarget(targets, seen, modRoot, meta.injection.dll, meta.injection.entryPoint);
+            }
+            return targets;
+        }
+
+        private void AddInjectionTarget(List<KeyValuePair<string, string>> targets, HashSet<string> seen, string modRoot, string dllRelative, string entryPoint)
+        {
+            if (string.IsNullOrWhiteSpace(modRoot) || string.IsNullOrWhiteSpace(dllRelative) || string.IsNullOrWhiteSpace(entryPoint)) return;
+            string full = Path.GetFullPath(Path.Combine(modRoot, dllRelative.Replace('/', Path.DirectorySeparatorChar)));
+            if (!seen.Add(full + "!" + entryPoint)) return;
+            targets.Add(new KeyValuePair<string, string>(full, entryPoint));
+        }
+
         private string BuildLaunchArguments()
         {
             EnsureSettingsState();
             List<string> args = new List<string>();
             HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            List<ModInfo> launchMods = (currentManagedMods ?? new List<ModInfo>())
-                .Concat(currentWorkshopMods ?? new List<ModInfo>()).Where(IsModSelected).ToList();
-            foreach (ModInfo mod in launchMods.OrderBy(m =>
+            List<ModInfo> orderedMods = OrderedEnabledMods();
+            List<KeyValuePair<string, string>> injections = CollectInjectionTargets(orderedMods);
+            if (injections.Count > 0)
             {
-                int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => x.Equals(m.ActiveToken, StringComparison.OrdinalIgnoreCase));
-                return index < 0 ? int.MaxValue : index;
-            }))
-            {
-                if (!string.IsNullOrWhiteSpace(mod.ModJsonLaunchArguments) && seen.Add(mod.ModJsonLaunchArguments.Trim()))
-                    args.Add(mod.ModJsonLaunchArguments.Trim());
-                LauncherMeta meta = ReadLauncherMeta(mod);
-                if (meta != null && !string.IsNullOrWhiteSpace(meta.launchArguments) && seen.Add(meta.launchArguments.Trim()))
-                    args.Add(meta.launchArguments.Trim());
+                List<string> tokens = injections.Select(t => (t.Key.IndexOf(' ') >= 0 ? "\"" + t.Key + "\"" : t.Key) + "!" + t.Value).ToList();
+                args.Add("--low-level-inject " + string.Join(" ", tokens));
             }
             string global = launchArgsBox == null ? settings.GlobalLaunchArguments : launchArgsBox.Text.Trim();
             if (!string.IsNullOrWhiteSpace(global) && seen.Add(global)) args.Add(global);
@@ -44,29 +77,28 @@ namespace DW2ModLauncherBeta
         private void LaunchGame()
         {
             SaveSettingsFromUi();
-            if (FindAiIni() != null) SaveAiSettings();
             AnalyzeConflicts();
             RefreshModStatusColumns();
             List<string> diagnostics = BuildLaunchDiagnostics();
             if (diagnostics.Count > 0)
             {
                 DialogResult diagnosticAnswer = MessageBox.Show(
-                    T("起動前診断で問題が見つかりました。\r\n\r\n", "Pre-launch diagnostics found issues.\r\n\r\n") +
+                    T("DiagnosticsFoundIssues") +
                     string.Join("\r\n", diagnostics.Take(30).ToArray()) +
-                    T("\r\n\r\nこのまま起動しますか？", "\r\n\r\nLaunch anyway?"),
-                    T("起動前診断", "Pre-launch diagnostics"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    T("LaunchAnyway"),
+                    T("PreLaunchDiagnostics"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (diagnosticAnswer != DialogResult.Yes) return;
             }
             if (currentCollisions.Count > 0)
             {
                 string warning = BuildConflictWarning();
-                DialogResult answer = MessageBox.Show(warning, T("MOD競合の警告", "MOD Conflict Warning"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                DialogResult answer = MessageBox.Show(warning, T("MODConflictWarning"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (answer != DialogResult.Yes) return;
             }
             string exe = Path.Combine(settings.GameRoot ?? "", "DistantWorlds2.exe");
             if (!File.Exists(exe))
             {
-                MessageBox.Show(T("DistantWorlds2.exe が見つかりません。設定タブでゲームフォルダーを指定してください。", "DistantWorlds2.exe was not found. Set the game folder in Settings."), Text);
+                MessageBox.Show(T("GameExeNotFound"), Text);
                 return;
             }
             try
@@ -77,7 +109,7 @@ namespace DW2ModLauncherBeta
                 psi.Arguments = BuildLaunchArguments();
                 psi.UseShellExecute = true;
                 Process.Start(psi);
-                SetStatus(T("Distant Worlds 2 を起動しました。", "Distant Worlds 2 launched."));
+                SetStatus(T("DistantWorlds2Launched"));
             }
             catch (Exception ex)
             {

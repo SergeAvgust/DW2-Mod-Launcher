@@ -15,4 +15,10 @@
     <ProjectReference Include="..\DW2ModLauncher.Core\DW2ModLauncher.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Languages\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

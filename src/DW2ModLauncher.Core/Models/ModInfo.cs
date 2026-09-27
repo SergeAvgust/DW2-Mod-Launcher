@@ -31,7 +31,14 @@ namespace DW2ModLauncher.Core.Models
         public List<string> ConflictMods { get; set; }
         public List<string> ConflictPathCache { get; set; }
         public string ModJsonPath { get; set; }
-        public string ModJsonLaunchArguments { get; set; }
+        // Declarative low-level-inject target: a DLL path relative to this
+        // mod's own content folder, plus its entry point. The launcher
+        // composes every enabled mod's injection into a single well-formed
+        // --low-level-inject argument (the game engine accepts multiple
+        // injection targets in one such argument, but only one occurrence of
+        // the flag actually takes effect).
+        public string InjectionDll { get; set; }
+        public string InjectionEntryPoint { get; set; }
         public List<string> IncludedTools { get; set; }
         public List<string> IncludedDocuments { get; set; }
         public List<string> RequiredMods { get; set; }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using DW2ModLauncher.Core.Diagnostics;
 using DW2ModLauncher.Core.Models;
@@ -11,17 +12,27 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm : Form
     {
+        // The mod list has 5 columns: MOD Name, Source, MOD State (checkbox),
+        // Health (collapsed conflict/duplicate/update status) and Load Order.
+        // Everything else that used to be its own column now lives in the
+        // details panel only.
+        private const int ColumnModState = 2;
+        private const int ColumnHealth = 3;
+        private const int ColumnLoadOrder = 4;
+
         private sealed class ModListComparer : IComparer
         {
             private readonly int column;
             private readonly bool ascending;
             private readonly Func<ModInfo, bool> isEnabled;
+            private readonly Func<ModInfo, int> healthSeverity;
 
-            public ModListComparer(int column, bool ascending, Func<ModInfo, bool> isEnabled)
+            public ModListComparer(int column, bool ascending, Func<ModInfo, bool> isEnabled, Func<ModInfo, int> healthSeverity)
             {
                 this.column = column;
                 this.ascending = ascending;
                 this.isEnabled = isEnabled;
+                this.healthSeverity = healthSeverity;
             }
 
             public int Compare(object x, object y)
@@ -31,18 +42,16 @@ namespace DW2ModLauncherBeta
                 ModInfo left = leftItem == null ? null : leftItem.Tag as ModInfo;
                 ModInfo right = rightItem == null ? null : rightItem.Tag as ModInfo;
                 int result;
-                if (column == 4)
+                if (column == ColumnModState)
                     result = CompareInt(left == null || !isEnabled(left) ? 0 : 1, right == null || !isEnabled(right) ? 0 : 1);
-                else if (column == 5)
-                    result = CompareInt(left == null ? 0 : left.ConflictCount, right == null ? 0 : right.ConflictCount);
-                else if (column == 6)
-                    result = CompareInt(left == null ? 0 : left.DuplicateCount, right == null ? 0 : right.DuplicateCount);
-                else if (column == 8)
+                else if (column == ColumnHealth)
+                    result = CompareInt(left == null ? 0 : healthSeverity(left), right == null ? 0 : healthSeverity(right));
+                else if (column == ColumnLoadOrder)
                 {
                     int leftOrder;
                     int rightOrder;
-                    if (!int.TryParse(leftItem == null || leftItem.SubItems.Count <= 8 ? "" : leftItem.SubItems[8].Text, out leftOrder)) leftOrder = int.MaxValue;
-                    if (!int.TryParse(rightItem == null || rightItem.SubItems.Count <= 8 ? "" : rightItem.SubItems[8].Text, out rightOrder)) rightOrder = int.MaxValue;
+                    if (!int.TryParse(leftItem == null || leftItem.SubItems.Count <= ColumnLoadOrder ? "" : leftItem.SubItems[ColumnLoadOrder].Text, out leftOrder)) leftOrder = int.MaxValue;
+                    if (!int.TryParse(rightItem == null || rightItem.SubItems.Count <= ColumnLoadOrder ? "" : rightItem.SubItems[ColumnLoadOrder].Text, out rightOrder)) rightOrder = int.MaxValue;
                     result = CompareInt(leftOrder, rightOrder);
                 }
                 else
@@ -99,33 +108,19 @@ namespace DW2ModLauncherBeta
         private Label workshopPathLabel;
 
         private TabControl tabs;
-        private TabPage managedTab;
-        private TabPage workshopTab;
-        private TabPage aiTab;
+        private TabPage modsTab;
         private TabPage settingsTab;
 
-        private ListView managedList;
-        private ListView workshopList;
+        private ListView modList;
         private readonly Dictionary<ListView, int> listSortColumns = new Dictionary<ListView, int>();
         private readonly Dictionary<ListView, bool> listSortAscending = new Dictionary<ListView, bool>();
-        private ImageList managedImages;
-        private ImageList workshopImages;
-        private PictureBox managedPreview;
-        private PictureBox workshopPreview;
-        private Label managedName;
-        private Label managedDesc;
-        private Label workshopName;
-        private Label workshopDesc;
-
-        private CheckBox aiEnabled;
-        private CheckBox aiWar;
-        private CheckBox aiPeace;
-        private CheckBox aiUltimatum;
-        private CheckBox aiAdvisor;
-        private TextBox aiBackend;
-        private TextBox aiBaseUrl;
-        private TextBox aiModel;
-        private Label aiIniPathLabel;
+        private ImageList modImages;
+        private PictureBox modPreview;
+        private Label modName;
+        private Panel modProblemsPanel;
+        private Label modProblemsLabel;
+        private TextBox modDesc;
+        private bool fittingModListColumns;
 
         private TextBox gameRootBox;
         private TextBox workshopRootBox;
@@ -134,28 +129,18 @@ namespace DW2ModLauncherBeta
         private ComboBox profileCombo;
         private TextBox commandPreviewBox;
 
-        private Button managedOpenButton;
-        private Button managedIniButton;
-        private Button workshopOpenButton;
+        private Button modRootButton;
+        private Button iniButton;
+        private Button workshopRootButton;
         private Button gameOpenButton;
-        private Button saveAiButton;
-        private Button reloadAiButton;
         private Button detectButton;
         private Button saveSettingsButton;
         private Button workshopUpdateButton;
         private Button workshopSteamButton;
-        private Button managedDetailsButton;
-        private Button workshopDetailsButton;
-        private Button managedSelectedFolderButton;
-        private Button workshopSelectedFolderButton;
-        private Button folderSettingsButton;
-        private Button managedNavigationButton;
-        private Button workshopNavigationButton;
-        private Button aiNavigationButton;
+        private Button detailsButton;
+        private Button selectedFolderButton;
+        private Button modsNavigationButton;
         private Button settingsNavigationButton;
-        private ComboBox stateEditor;
-        private ListView stateEditorList;
-        private ListViewItem stateEditorItem;
 
         public MainForm()
         {
@@ -168,6 +153,7 @@ namespace DW2ModLauncherBeta
 
             Text = "DW2 Mod Launcher BETA v0.4.6 CONFLICT FILTER FIX";
             StartPosition = FormStartPosition.CenterScreen;
+            AutoScaleMode = AutoScaleMode.None;
             MinimumSize = new Size(1000, 650);
             Rectangle workArea = Screen.PrimaryScreen == null ? new Rectangle(0, 0, 1500, 900) : Screen.PrimaryScreen.WorkingArea;
             Size = new Size(Math.Max(1000, Math.Min(1500, workArea.Width - 40)), Math.Max(650, Math.Min(860, workArea.Height - 60)));
@@ -175,7 +161,25 @@ namespace DW2ModLauncherBeta
             ForeColor = Dw2Text;
             Font = new Font("Segoe UI", 9F);
 
+            // The whole UI below is laid out with pixel coordinates authored for a
+            // 96 DPI screen. Windows Forms does not auto-scale a manually built
+            // control tree like this, so on a scaled-DPI monitor the (now DPI-aware,
+            // crisp) text renders larger than the hand-placed control bounds expect
+            // and gets clipped. Scale the built tree - and grow the window to match -
+            // by the real DPI ratio so the layout keeps its proportions.
+            float dpiScale = DeviceDpi / 96f;
+
             BuildUi();
+
+            if (dpiScale > 1.01f)
+            {
+                SuspendLayout();
+                foreach (Control child in Controls) child.Scale(new SizeF(dpiScale, dpiScale));
+                MinimumSize = new Size((int)Math.Round(MinimumSize.Width * dpiScale), (int)Math.Round(MinimumSize.Height * dpiScale));
+                Size = new Size((int)Math.Round(Size.Width * dpiScale), (int)Math.Round(Size.Height * dpiScale));
+                ResumeLayout(true);
+            }
+
             SafeStage("DetectPaths", delegate { DetectPaths(false); });
             SafeStage("ApplyLanguage", delegate { ApplyLanguage(); });
             SafeStage("RefreshAll", delegate { RefreshAll(); });
@@ -198,8 +202,8 @@ namespace DW2ModLauncherBeta
         {
             if (settings == null) settings = new LauncherSettings();
             if (settings.SelectedMods == null) settings.SelectedMods = new Dictionary<string, bool>();
-            if (string.IsNullOrWhiteSpace(settings.Language)) settings.Language = "ja";
-            if (settings.Language != "ja" && settings.Language != "en") settings.Language = "ja";
+            if (string.IsNullOrWhiteSpace(settings.Language)) settings.Language = "en";
+            if (!Localization.AvailableLanguageCodes().Contains(settings.Language)) settings.Language = "en";
             if (settings.GameRoot == null) settings.GameRoot = "";
             if (settings.WorkshopRoot == null) settings.WorkshopRoot = "";
             if (settings.ManagedModsRoot == null) settings.ManagedModsRoot = "";
@@ -219,7 +223,7 @@ namespace DW2ModLauncherBeta
             catch (Exception ex)
             {
                 Logger.LogException(name, ex);
-                SetStatus(T("一部処理をスキップしました: ", "Skipped a failed step: ") + name + " - " + ex.Message);
+                SetStatus("Skipped a failed step: " + name + " - " + ex.Message);
             }
         }
     }
