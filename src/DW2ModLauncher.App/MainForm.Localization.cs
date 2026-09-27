@@ -2,10 +2,10 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm
     {
-        // A UI affordance, not translatable content - kept out of the
-        // language files so it isn't duplicated across every "value + this
-        // cell is a dropdown" resource string.
-        private const string DropdownIndicator = " ▼";
+        // Glyphs for the MOD State checkbox column - a UI affordance, not
+        // translatable content, so it's kept out of the language files.
+        private const string CheckedGlyph = "☑";
+        private const string UncheckedGlyph = "☐";
 
         private void SetStatus(string text)
         {

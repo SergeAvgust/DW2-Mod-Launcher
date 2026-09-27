@@ -153,10 +153,10 @@ namespace DW2ModLauncherBeta
             foreach (ListViewItem item in modList.Items)
             {
                 ModInfo mod = item.Tag as ModInfo;
-                if (mod == null || item.SubItems.Count < 9) continue;
+                if (mod == null || item.SubItems.Count <= ColumnLoadOrder) continue;
                 int index = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
-                item.SubItems[8].Text = index < 0 ? "—" : (index + 1).ToString(CultureInfo.InvariantCulture);
-                item.SubItems[8].ForeColor = index < 0 ? Dw2Muted : Dw2Gold;
+                item.SubItems[ColumnLoadOrder].Text = index < 0 ? "—" : (index + 1).ToString(CultureInfo.InvariantCulture);
+                item.SubItems[ColumnLoadOrder].ForeColor = index < 0 ? Dw2Muted : Dw2Gold;
             }
         }
 

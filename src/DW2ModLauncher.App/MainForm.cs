@@ -12,17 +12,27 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm : Form
     {
+        // The mod list has 5 columns: MOD Name, Source, MOD State (checkbox),
+        // Health (collapsed conflict/duplicate/update status) and Load Order.
+        // Everything else that used to be its own column now lives in the
+        // details panel only.
+        private const int ColumnModState = 2;
+        private const int ColumnHealth = 3;
+        private const int ColumnLoadOrder = 4;
+
         private sealed class ModListComparer : IComparer
         {
             private readonly int column;
             private readonly bool ascending;
             private readonly Func<ModInfo, bool> isEnabled;
+            private readonly Func<ModInfo, int> healthSeverity;
 
-            public ModListComparer(int column, bool ascending, Func<ModInfo, bool> isEnabled)
+            public ModListComparer(int column, bool ascending, Func<ModInfo, bool> isEnabled, Func<ModInfo, int> healthSeverity)
             {
                 this.column = column;
                 this.ascending = ascending;
                 this.isEnabled = isEnabled;
+                this.healthSeverity = healthSeverity;
             }
 
             public int Compare(object x, object y)
@@ -32,18 +42,16 @@ namespace DW2ModLauncherBeta
                 ModInfo left = leftItem == null ? null : leftItem.Tag as ModInfo;
                 ModInfo right = rightItem == null ? null : rightItem.Tag as ModInfo;
                 int result;
-                if (column == 4)
+                if (column == ColumnModState)
                     result = CompareInt(left == null || !isEnabled(left) ? 0 : 1, right == null || !isEnabled(right) ? 0 : 1);
-                else if (column == 5)
-                    result = CompareInt(left == null ? 0 : left.ConflictCount, right == null ? 0 : right.ConflictCount);
-                else if (column == 6)
-                    result = CompareInt(left == null ? 0 : left.DuplicateCount, right == null ? 0 : right.DuplicateCount);
-                else if (column == 8)
+                else if (column == ColumnHealth)
+                    result = CompareInt(left == null ? 0 : healthSeverity(left), right == null ? 0 : healthSeverity(right));
+                else if (column == ColumnLoadOrder)
                 {
                     int leftOrder;
                     int rightOrder;
-                    if (!int.TryParse(leftItem == null || leftItem.SubItems.Count <= 8 ? "" : leftItem.SubItems[8].Text, out leftOrder)) leftOrder = int.MaxValue;
-                    if (!int.TryParse(rightItem == null || rightItem.SubItems.Count <= 8 ? "" : rightItem.SubItems[8].Text, out rightOrder)) rightOrder = int.MaxValue;
+                    if (!int.TryParse(leftItem == null || leftItem.SubItems.Count <= ColumnLoadOrder ? "" : leftItem.SubItems[ColumnLoadOrder].Text, out leftOrder)) leftOrder = int.MaxValue;
+                    if (!int.TryParse(rightItem == null || rightItem.SubItems.Count <= ColumnLoadOrder ? "" : rightItem.SubItems[ColumnLoadOrder].Text, out rightOrder)) rightOrder = int.MaxValue;
                     result = CompareInt(leftOrder, rightOrder);
                 }
                 else
@@ -109,7 +117,10 @@ namespace DW2ModLauncherBeta
         private ImageList modImages;
         private PictureBox modPreview;
         private Label modName;
-        private Label modDesc;
+        private Panel modProblemsPanel;
+        private Label modProblemsLabel;
+        private TextBox modDesc;
+        private bool fittingModListColumns;
 
         private TextBox gameRootBox;
         private TextBox workshopRootBox;
@@ -130,9 +141,6 @@ namespace DW2ModLauncherBeta
         private Button selectedFolderButton;
         private Button modsNavigationButton;
         private Button settingsNavigationButton;
-        private ComboBox stateEditor;
-        private ListView stateEditorList;
-        private ListViewItem stateEditorItem;
 
         public MainForm()
         {

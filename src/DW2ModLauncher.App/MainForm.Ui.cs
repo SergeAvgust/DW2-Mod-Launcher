@@ -220,7 +220,7 @@ namespace DW2ModLauncherBeta
         {
             SplitContainer split = new SplitContainer();
             split.Dock = DockStyle.Fill;
-            split.SplitterDistance = 760;
+            split.SplitterDistance = 700;
             split.BackColor = tab.BackColor;
             tab.Controls.Add(split);
 
@@ -249,6 +249,7 @@ namespace DW2ModLauncherBeta
                 using (SolidBrush back = new SolidBrush(background)) e.Graphics.FillRectangle(back, e.Bounds);
 
                 Rectangle textBounds = e.Bounds;
+                bool centered = e.ColumnIndex == ColumnModState || e.ColumnIndex == ColumnHealth;
                 if (e.ColumnIndex == 0 && list.SmallImageList != null && !string.IsNullOrWhiteSpace(e.Item.ImageKey) && list.SmallImageList.Images.ContainsKey(e.Item.ImageKey))
                 {
                     Image icon = list.SmallImageList.Images[e.Item.ImageKey];
@@ -256,10 +257,11 @@ namespace DW2ModLauncherBeta
                     e.Graphics.DrawImage(icon, new Rectangle(e.Bounds.X + 3, imageY, icon.Width, icon.Height));
                     textBounds = new Rectangle(e.Bounds.X + icon.Width + 9, e.Bounds.Y, Math.Max(0, e.Bounds.Width - icon.Width - 12), e.Bounds.Height);
                 }
+                else if (centered) textBounds = e.Bounds;
                 else textBounds = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, Math.Max(0, e.Bounds.Width - 9), e.Bounds.Height);
 
                 TextRenderer.DrawText(e.Graphics, e.SubItem.Text ?? "", list.Font, textBounds, foreground,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                    (centered ? TextFormatFlags.HorizontalCenter : TextFormatFlags.Left) | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
                 using (Pen separator = new Pen(Dw2Steel))
                 {
                     e.Graphics.DrawLine(separator, e.Bounds.Right - 1, e.Bounds.Top, e.Bounds.Right - 1, e.Bounds.Bottom);
@@ -276,15 +278,19 @@ namespace DW2ModLauncherBeta
             // undersized relative to the (now DPI-correct) text they hold.
             float columnDpiScale = DeviceDpi / 96f;
             Func<int, int> col = w => (int)Math.Round(w * columnDpiScale);
-            list.Columns.Add(T("MODName"), col(230));
-            list.Columns.Add(T("Source"), col(120));
-            list.Columns.Add(T("IncludedToolsColumn"), col(135));
-            list.Columns.Add(T("IncludedDocs"), col(135));
-            list.Columns.Add(T("MODState"), col(120));
-            list.Columns.Add(T("ConflictState"), col(135));
-            list.Columns.Add(T("DuplicateState"), col(125));
-            list.Columns.Add(T("UpdateState"), col(100));
-            list.Columns.Add(T("LoadOrder"), col(75));
+            list.Columns.Add(T("MODName"), col(320));
+            list.Columns.Add(T("Source"), col(160));
+            list.Columns.Add(T("MODState"), col(110));
+            list.Columns.Add(T("Health"), col(95));
+            list.Columns.Add(T("LoadOrder"), col(100));
+            // MOD Name absorbs whatever width the other (fixed) columns don't use,
+            // so the header row's background always reaches the right edge instead
+            // of leaving a plain white gap after the last column.
+            list.Resize += delegate { FitModListColumns(list); };
+            list.ColumnWidthChanged += delegate(object sender, ColumnWidthChangedEventArgs e)
+            {
+                if (e.ColumnIndex != 0) FitModListColumns(list);
+            };
             list.ColumnClick += delegate(object sender, ColumnClickEventArgs e)
             {
                 int previous;
@@ -297,7 +303,7 @@ namespace DW2ModLauncherBeta
                 else ascending = true;
                 listSortColumns[list] = e.Column;
                 listSortAscending[list] = ascending;
-                list.ListViewItemSorter = new ModListComparer(e.Column, ascending, IsModSelected);
+                list.ListViewItemSorter = new ModListComparer(e.Column, ascending, IsModSelected, HealthSeverity);
                 list.Sort();
                 ApplyAlternatingRowColors(list);
             };
@@ -426,9 +432,32 @@ namespace DW2ModLauncherBeta
             detail.Controls.Add(name);
             name.BringToFront();
 
-            Label desc = new Label();
+            // A colored callout, shown only when the selected mod has conflicts,
+            // duplicates or a pending update - sits right under the title so
+            // problems are the first thing noticed, not buried in the text below.
+            Panel problemsPanel = new Panel();
+            problemsPanel.Dock = DockStyle.Top;
+            problemsPanel.Visible = false;
+            problemsPanel.Padding = new Padding(10, 8, 10, 8);
+            detail.Controls.Add(problemsPanel);
+            problemsPanel.BringToFront();
+
+            Label problemsLabel = new Label();
+            problemsLabel.Dock = DockStyle.Fill;
+            problemsLabel.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            problemsLabel.TextAlign = ContentAlignment.TopLeft;
+            problemsPanel.Controls.Add(problemsLabel);
+
+            // A plain multiline TextBox instead of a Label so long mod details
+            // (conflicts, duplicate locations, included tools/docs, etc.) scroll
+            // instead of being clipped by the panel.
+            TextBox desc = new TextBox();
             desc.Dock = DockStyle.Fill;
-            desc.Padding = new Padding(0, 6, 0, 0);
+            desc.Multiline = true;
+            desc.ReadOnly = true;
+            desc.ScrollBars = ScrollBars.Vertical;
+            desc.BorderStyle = BorderStyle.None;
+            desc.BackColor = Dw2PanelAlt;
             desc.ForeColor = Dw2Muted;
             detail.Controls.Add(desc);
             desc.BringToFront();
@@ -445,15 +474,17 @@ namespace DW2ModLauncherBeta
                 Control documentsButton = FindControlRecursive(leftTop, "ModDocumentsButton");
                 if (documentsButton != null) documentsButton.Enabled = selectedMod != null && selectedMod.IncludedDocuments != null && selectedMod.IncludedDocuments.Count > 0;
                 if (list.SelectedItems.Count == 0) return;
-                ShowModDetails(selectedMod, preview, name, desc);
+                ShowModDetails(selectedMod, preview, name, problemsPanel, problemsLabel, desc);
             };
             list.DoubleClick += delegate { OpenSelectedModDetails(list); };
-            list.MouseClick += delegate(object sender, MouseEventArgs e) { ShowStateDropDown(list, e.Location); };
+            list.MouseClick += delegate(object sender, MouseEventArgs e) { ToggleModStateAtLocation(list, e.Location); };
 
             modList = list;
             modImages = images;
             modPreview = preview;
             modName = name;
+            modProblemsPanel = problemsPanel;
+            modProblemsLabel = problemsLabel;
             modDesc = desc;
         }
 
@@ -594,14 +625,32 @@ namespace DW2ModLauncherBeta
             return label;
         }
 
+        private void FitModListColumns(ListView list)
+        {
+            if (list == null || list.Columns.Count == 0 || fittingModListColumns) return;
+            fittingModListColumns = true;
+            try
+            {
+                int othersWidth = 0;
+                for (int i = 1; i < list.Columns.Count; i++) othersWidth += list.Columns[i].Width;
+                list.Columns[0].Width = Math.Max((int)Math.Round(120 * (DeviceDpi / 96f)), list.ClientSize.Width - othersWidth);
+            }
+            finally { fittingModListColumns = false; }
+        }
+
         private void FitInitialListLayout()
         {
             ListView list = modList;
-            SplitContainer split = list == null || list.Parent == null ? null : list.Parent.Parent as SplitContainer;
+            // list -> listLayout (TableLayoutPanel) -> Panel1 (SplitterPanel) -> SplitContainer
+            SplitContainer split = list == null || list.Parent == null || list.Parent.Parent == null
+                ? null : list.Parent.Parent.Parent as SplitContainer;
             if (split == null || split.ClientSize.Width <= 0) return;
             int maximum = Math.Max(split.Panel1MinSize, split.ClientSize.Width - split.Panel2MinSize - split.SplitterWidth);
-            int desired = Math.Min(1040, maximum);
+            // The details (right) panel gets about 30% of the window by default,
+            // leaving the mod list the remaining 70%.
+            int desired = Math.Min((int)Math.Round(split.ClientSize.Width * 0.70), maximum);
             if (desired >= split.Panel1MinSize && desired <= maximum) split.SplitterDistance = desired;
+            FitModListColumns(list);
         }
 
         private void ApplyLanguage()
@@ -653,17 +702,13 @@ namespace DW2ModLauncherBeta
                 foreach (ModInfo mod in currentManagedMods) if (mod != null) mod.SourceName = T("GameMODFolder");
             if (currentWorkshopMods != null)
                 foreach (ModInfo mod in currentWorkshopMods) if (mod != null) mod.SourceName = "Steam Workshop";
-            if (modList != null && modList.Columns.Count >= 9)
+            if (modList != null && modList.Columns.Count > ColumnLoadOrder)
             {
                 modList.Columns[0].Text = T("MODName");
                 modList.Columns[1].Text = T("Source");
-                modList.Columns[2].Text = T("IncludedToolsColumn");
-                modList.Columns[3].Text = T("IncludedDocs");
-                modList.Columns[4].Text = T("MODState");
-                modList.Columns[5].Text = T("ConflictState");
-                modList.Columns[6].Text = T("DuplicateState");
-                modList.Columns[7].Text = T("UpdateState");
-                modList.Columns[8].Text = T("LoadOrder");
+                modList.Columns[ColumnModState].Text = T("MODState");
+                modList.Columns[ColumnHealth].Text = T("Health");
+                modList.Columns[ColumnLoadOrder].Text = T("LoadOrder");
             }
 
             RefreshListSourceText(modList);

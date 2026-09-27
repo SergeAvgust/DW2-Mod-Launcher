@@ -85,30 +85,6 @@ namespace DW2ModLauncherBeta
         }
 
 
-        private string IncludedDocumentsSummary(ModInfo mod)
-        {
-            int count = mod == null || mod.IncludedDocuments == null ? 0 : mod.IncludedDocuments.Count;
-            if (count == 0) return "—";
-            return count == 1 ? T("DocumentFound") : T("Documents", count);
-        }
-
-        private string IncludedToolsSummary(ModInfo mod)
-        {
-            List<string> tools = mod == null || mod.IncludedTools == null ? new List<string>() : mod.IncludedTools;
-            if (tools.Count == 0) return "—";
-            if (tools.Count > 1) return T("IncludedTools", tools.Count);
-            bool installer = tools.Any(x => Path.GetFileName(x).Equals("INSTALL.bat", StringComparison.OrdinalIgnoreCase) || Path.GetFileName(x).StartsWith("INSTALL_", StringComparison.OrdinalIgnoreCase));
-            bool updater = tools.Any(x => Path.GetFileName(x).IndexOf("UPDATE", StringComparison.OrdinalIgnoreCase) >= 0);
-            bool config = tools.Any(x => Path.GetFileName(x).IndexOf("CONFIG", StringComparison.OrdinalIgnoreCase) >= 0 || Path.GetFileName(x).IndexOf("SETTING", StringComparison.OrdinalIgnoreCase) >= 0);
-            if (installer) return T("InstallerFound");
-            if (updater) return T("UpdateToolFound");
-            if (config) return T("ConfigToolFound");
-            bool bat = tools.Any(x => Path.GetExtension(x).Equals(".bat", StringComparison.OrdinalIgnoreCase));
-            bool exe = tools.Any(x => Path.GetExtension(x).Equals(".exe", StringComparison.OrdinalIgnoreCase));
-            if (bat && exe) return T("BATEXEFound");
-            return bat ? T("BATFound") : T("EXEFound");
-        }
-
         private void PopulateList(ListView list, ImageList images, List<ModInfo> mods)
         {
             EnsureSettingsState();
@@ -136,12 +112,8 @@ namespace DW2ModLauncherBeta
                     item.Tag = mod;
                     if (thumb != null) item.ImageKey = imageKey;
                     item.SubItems.Add(mod.SourceName ?? "");
-                    item.SubItems.Add(IncludedToolsSummary(mod));
-                    item.SubItems.Add(IncludedDocumentsSummary(mod));
-                    item.SubItems.Add("");
-                    item.SubItems.Add("");
-                    item.SubItems.Add("");
-                    item.SubItems.Add(!mod.IsWorkshop ? "—" : T("NotCheckedPlain"));
+                    item.SubItems.Add(""); // MOD State - filled in by RefreshModStatusColumns
+                    item.SubItems.Add(""); // Health - filled in by RefreshModStatusColumns
                     int orderIndex = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
                     item.SubItems.Add(orderIndex < 0 ? "—" : (orderIndex + 1).ToString(CultureInfo.InvariantCulture));
                     item.UseItemStyleForSubItems = false;
@@ -171,12 +143,14 @@ namespace DW2ModLauncherBeta
             catch { return null; }
         }
 
-        private void ShowModDetails(ModInfo mod, PictureBox preview, Label name, Label desc)
+        private void ShowModDetails(ModInfo mod, PictureBox preview, Label name, Panel problemsPanel, Label problemsLabel, Control desc)
         {
             if (mod == null || preview == null || name == null || desc == null) return;
             if (preview.Image != null) { Image old = preview.Image; preview.Image = null; old.Dispose(); }
             preview.Image = LoadImageNoLock(mod.PreviewImage);
             name.Text = (mod.DisplayName ?? "") + (string.IsNullOrWhiteSpace(mod.Version) ? "" : "  v" + mod.Version);
+
+            UpdateProblemsPanel(problemsPanel, problemsLabel, mod);
 
             StringBuilder b = new StringBuilder();
             if (!string.IsNullOrWhiteSpace(mod.Description)) b.AppendLine(mod.Description.Trim());
@@ -202,39 +176,30 @@ namespace DW2ModLauncherBeta
             if (mod.LoadBefore != null && mod.LoadBefore.Count > 0) b.AppendLine("LoadBefore: " + string.Join(", ", mod.LoadBefore.ToArray()));
             if (mod.LoadAfter != null && mod.LoadAfter.Count > 0) b.AppendLine("LoadAfter: " + string.Join(", ", mod.LoadAfter.ToArray()));
 
-            if (mod.DuplicateCount > 0)
-            {
-                b.AppendLine();
-                b.AppendLine(T("DuplicateInstallationsDetail") + mod.DuplicateCount + T("Locations"));
-                foreach (string location in mod.DuplicateLocations.Take(8)) b.AppendLine("  • " + location);
-            }
-
-            if (IsModSelected(mod))
-            {
-                if (mod.ConflictCount > 0)
-                {
-                    b.AppendLine();
-                    b.AppendLine(T("Conflicts") + mod.ConflictCount + T("Files") +
-                        T("High") + mod.HighRiskConflictCount + T("Low") + mod.LowRiskConflictCount + "）");
-                    if (mod.ConflictMods != null && mod.ConflictMods.Count > 0)
-                        b.AppendLine(T("ConflictsWith") + string.Join(", ", mod.ConflictMods.Take(8).ToArray()));
-                    if (mod.ConflictFiles != null)
-                    {
-                        foreach (string file in mod.ConflictFiles.Take(8)) b.AppendLine("  • " + file);
-                        if (mod.ConflictFiles.Count > 8) b.AppendLine("  ... +" + (mod.ConflictFiles.Count - 8));
-                    }
-                }
-                else
-                {
-                    b.AppendLine();
-                    b.AppendLine(T("NoFileConflicts"));
-                    if (mod.IdenticalFileCount > 0) b.AppendLine(T("SamePathAndIdenticalContent") + mod.IdenticalFileCount);
-                }
-            }
-            else
+            if (!IsModSelected(mod))
             {
                 b.AppendLine();
                 b.AppendLine(T("ModDisabledNote"));
+            }
+            else if (mod.ConflictCount == 0 && mod.IdenticalFileCount == 0)
+            {
+                b.AppendLine();
+                b.AppendLine(T("NoFileConflicts"));
+            }
+
+            if (IsModSelected(mod) && mod.ConflictFiles != null && mod.ConflictFiles.Count > 0)
+            {
+                b.AppendLine();
+                b.AppendLine(T("ConflictFilesHeader"));
+                foreach (string file in mod.ConflictFiles.Take(8)) b.AppendLine("  • " + file);
+                if (mod.ConflictFiles.Count > 8) b.AppendLine("  ... +" + (mod.ConflictFiles.Count - 8));
+            }
+
+            if (mod.DuplicateCount > 0)
+            {
+                b.AppendLine();
+                b.AppendLine(T("DuplicateLocationsHeader"));
+                foreach (string location in mod.DuplicateLocations.Take(8)) b.AppendLine("  • " + location);
             }
 
             if (mod.IsWorkshop)
@@ -253,6 +218,47 @@ namespace DW2ModLauncherBeta
                     b.AppendLine(T("SteamUpdate") + UnixTimeText(mod.RemoteWorkshopTimeUpdated));
             }
             desc.Text = b.ToString();
+        }
+
+        // A short, colored callout for whatever is actually wrong with the mod
+        // (conflicts, duplicates, a pending update) - collapsed entirely when
+        // there is nothing to flag, so a clean mod shows no box at all.
+        private void UpdateProblemsPanel(Panel panel, Label label, ModInfo mod)
+        {
+            if (panel == null || label == null) return;
+            List<string> lines = new List<string>();
+            if (HealthSeverity(mod) >= 2)
+            {
+                if (mod.HighRiskConflictCount > 0 || mod.LowRiskConflictCount > 0)
+                {
+                    lines.Add(T("Conflicts") + mod.ConflictCount + T("Files") +
+                        T("High") + mod.HighRiskConflictCount + T("Low") + mod.LowRiskConflictCount + "）");
+                    if (mod.ConflictMods != null && mod.ConflictMods.Count > 0)
+                        lines.Add(T("ConflictsWith") + string.Join(", ", mod.ConflictMods.Take(8).ToArray()));
+                }
+                if (mod.IdenticalFileCount > 0) lines.Add(T("SamePathAndIdenticalContent") + mod.IdenticalFileCount);
+                if (mod.DuplicateCount > 0) lines.Add(T("DuplicateInstallationsDetail") + mod.DuplicateCount + T("Locations"));
+                if (mod.IsWorkshop && mod.UpdateState == "update") lines.Add(T("SteamWorkshopUpdateAvailable"));
+            }
+
+            if (lines.Count == 0)
+            {
+                panel.Visible = false;
+                panel.Height = 0;
+                return;
+            }
+
+            bool conflict = HealthSeverity(mod) == 3;
+            panel.BackColor = conflict ? Dw2Red : Dw2Gold;
+            label.ForeColor = conflict ? Color.White : Color.Black;
+            label.Text = (conflict ? T("HealthConflict") : T("HealthCaution")) + "\r\n" + string.Join("\r\n", lines.ToArray());
+
+            int width = panel.ClientSize.Width > 0 ? panel.ClientSize.Width
+                : (panel.Parent != null && panel.Parent.ClientSize.Width > 0 ? panel.Parent.ClientSize.Width : 300);
+            Size measured = TextRenderer.MeasureText(label.Text, label.Font,
+                new Size(Math.Max(50, width - panel.Padding.Horizontal), int.MaxValue), TextFormatFlags.WordBreak);
+            panel.Height = measured.Height + panel.Padding.Vertical;
+            panel.Visible = true;
         }
 
         private bool IsModSelected(ModInfo mod)
@@ -279,58 +285,16 @@ namespace DW2ModLauncherBeta
                    settings.SelectedMods.TryGetValue(mod.Key, out enabled) && enabled;
         }
 
-        private void ShowStateDropDown(ListView list, Point location)
+        private void ToggleModStateAtLocation(ListView list, Point location)
         {
             if (list == null || populating) return;
             ListViewHitTestInfo hit = list.HitTest(location);
             if (hit == null || hit.Item == null || hit.SubItem == null) return;
             int column = hit.Item.SubItems.IndexOf(hit.SubItem);
-            if (column != 4) return;
-
-            HideStateDropDown();
-            stateEditorList = list;
-            stateEditorItem = hit.Item;
-            ModInfo mod = stateEditorItem.Tag as ModInfo;
-            if (mod == null) { HideStateDropDown(); return; }
-
-            stateEditor = new ComboBox();
-            stateEditor.DropDownStyle = ComboBoxStyle.DropDownList;
-            stateEditor.Items.Add(T("Enabled"));
-            stateEditor.Items.Add(T("Disabled"));
-            stateEditor.SelectedIndex = IsModSelected(mod) ? 0 : 1;
-            Rectangle bounds = hit.SubItem.Bounds;
-            stateEditor.Bounds = new Rectangle(bounds.X, bounds.Y, Math.Max(105, bounds.Width), bounds.Height + 2);
-            stateEditor.Font = list.Font;
-            ComboBox editor = stateEditor;
-            ListViewItem editedItem = stateEditorItem;
-            stateEditor.SelectionChangeCommitted += delegate
-            {
-                ModInfo selectedMod = editedItem == null ? null : editedItem.Tag as ModInfo;
-                bool enabled = editor.SelectedIndex == 0;
-                HideStateDropDown();
-                ApplyModEnabledSelection(selectedMod, enabled);
-            };
-            stateEditor.DropDownClosed += delegate
-            {
-                if (stateEditor == editor) BeginInvoke(new MethodInvoker(HideStateDropDown));
-            };
-            list.Controls.Add(stateEditor);
-            stateEditor.BringToFront();
-            stateEditor.Focus();
-            stateEditor.DroppedDown = true;
-        }
-
-        private void HideStateDropDown()
-        {
-            ComboBox old = stateEditor;
-            stateEditor = null;
-            stateEditorList = null;
-            stateEditorItem = null;
-            if (old != null)
-            {
-                try { old.DroppedDown = false; old.Parent.Controls.Remove(old); old.Dispose(); }
-                catch { }
-            }
+            if (column != ColumnModState) return;
+            ModInfo mod = hit.Item.Tag as ModInfo;
+            if (mod == null) return;
+            ApplyModEnabledSelection(mod, !IsModSelected(mod));
         }
 
         private void ApplyModEnabledSelection(ModInfo mod, bool enabled)

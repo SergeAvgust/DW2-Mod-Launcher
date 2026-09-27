@@ -173,67 +173,49 @@ namespace DW2ModLauncherBeta
             UpdateOverallStatus();
         }
 
+        // 0 = disabled/n-a, 1 = ok, 2 = caution (duplicates/low-risk/identical/update
+        // available), 3 = conflict (high-risk file collision). Shared between the
+        // Health column's text/color and its column-sort order.
+        private int HealthSeverity(ModInfo mod)
+        {
+            if (mod == null || !IsModSelected(mod)) return 0;
+            if (mod.HighRiskConflictCount > 0) return 3;
+            bool caution = mod.LowRiskConflictCount > 0 || mod.DuplicateCount > 0 || mod.IdenticalFileCount > 0 ||
+                           (mod.IsWorkshop && mod.UpdateState == "update");
+            return caution ? 2 : 1;
+        }
+
         private void RefreshOneModListStatus(ListView list)
         {
             if (list == null) return;
             foreach (ListViewItem item in list.Items)
             {
                 ModInfo mod = item.Tag as ModInfo;
-                if (mod == null || item.SubItems.Count < 9) continue;
+                if (mod == null || item.SubItems.Count <= ColumnLoadOrder) continue;
                 item.UseItemStyleForSubItems = false;
 
-                item.SubItems[2].Text = IncludedToolsSummary(mod);
-                item.SubItems[2].ForeColor = mod.IncludedTools != null && mod.IncludedTools.Count > 0 ? Dw2Gold : Dw2Muted;
-                item.SubItems[3].Text = IncludedDocumentsSummary(mod);
-                item.SubItems[3].ForeColor = mod.IncludedDocuments != null && mod.IncludedDocuments.Count > 0 ? Dw2BlueGlow : Dw2Muted;
-                item.SubItems[4].Text = T(IsModSelected(mod) ? "Enabled" : "Disabled") + DropdownIndicator;
-                item.SubItems[4].ForeColor = IsModSelected(mod) ? Dw2Green : Dw2Muted;
+                bool enabled = IsModSelected(mod);
+                item.SubItems[ColumnModState].Text = enabled ? CheckedGlyph : UncheckedGlyph;
+                item.SubItems[ColumnModState].ForeColor = enabled ? Dw2Green : Dw2Muted;
 
-                if (!IsModSelected(mod))
+                switch (HealthSeverity(mod))
                 {
-                    item.SubItems[5].Text = T("MODDisabled");
-                    item.SubItems[5].ForeColor = Dw2Muted;
-                }
-                else if (mod.ConflictCount > 0)
-                {
-                    item.SubItems[5].Text = mod.HighRiskConflictCount > 0
-                        ? T("HighRisk", mod.HighRiskConflictCount)
-                        : T("LowRisk", mod.LowRiskConflictCount);
-                    item.SubItems[5].ForeColor = mod.HighRiskConflictCount > 0 ? Dw2Red : Dw2Gold;
-                }
-                else if (mod.IdenticalFileCount > 0)
-                {
-                    item.SubItems[5].Text = T("Identical", mod.IdenticalFileCount);
-                    item.SubItems[5].ForeColor = Dw2BlueGlow;
-                }
-                else
-                {
-                    item.SubItems[5].Text = T("NoConflicts");
-                    item.SubItems[5].ForeColor = Dw2Green;
-                }
-
-                item.SubItems[6].Text = mod.DuplicateCount > 0 ? T("Duplicates", mod.DuplicateCount) : T("NoDuplicates");
-                item.SubItems[6].ForeColor = mod.DuplicateCount > 0 ? Dw2Gold : Dw2Muted;
-
-                if (!mod.IsWorkshop)
-                {
-                    item.SubItems[7].Text = "—";
-                    item.SubItems[7].ForeColor = Dw2Muted;
-                }
-                else if (mod.UpdateState == "update")
-                {
-                    item.SubItems[7].Text = T("UpdateAvailable");
-                    item.SubItems[7].ForeColor = Dw2Gold;
-                }
-                else if (mod.UpdateState == "current")
-                {
-                    item.SubItems[7].Text = T("Current");
-                    item.SubItems[7].ForeColor = Dw2Green;
-                }
-                else
-                {
-                    item.SubItems[7].Text = T("NotChecked");
-                    item.SubItems[7].ForeColor = Dw2Muted;
+                    case 3:
+                        item.SubItems[ColumnHealth].Text = T("HealthConflict");
+                        item.SubItems[ColumnHealth].ForeColor = Dw2Red;
+                        break;
+                    case 2:
+                        item.SubItems[ColumnHealth].Text = T("HealthCaution");
+                        item.SubItems[ColumnHealth].ForeColor = Dw2Gold;
+                        break;
+                    case 1:
+                        item.SubItems[ColumnHealth].Text = T("HealthOk");
+                        item.SubItems[ColumnHealth].ForeColor = Dw2Green;
+                        break;
+                    default:
+                        item.SubItems[ColumnHealth].Text = T("MODDisabled");
+                        item.SubItems[ColumnHealth].ForeColor = Dw2Muted;
+                        break;
                 }
             }
         }
@@ -241,7 +223,7 @@ namespace DW2ModLauncherBeta
         private void RefreshSelectedDetails()
         {
             if (modList != null && modList.SelectedItems.Count > 0)
-                ShowModDetails(modList.SelectedItems[0].Tag as ModInfo, modPreview, modName, modDesc);
+                ShowModDetails(modList.SelectedItems[0].Tag as ModInfo, modPreview, modName, modProblemsPanel, modProblemsLabel, modDesc);
         }
 
         private void UpdateOverallStatus()
