@@ -51,22 +51,22 @@ namespace DW2ModLauncherBeta
             if (diagnostics.Count > 0)
             {
                 DialogResult diagnosticAnswer = MessageBox.Show(
-                    T("起動前診断で問題が見つかりました。\r\n\r\n", "Pre-launch diagnostics found issues.\r\n\r\n") +
+                    T("DiagnosticsFoundIssues") +
                     string.Join("\r\n", diagnostics.Take(30).ToArray()) +
-                    T("\r\n\r\nこのまま起動しますか？", "\r\n\r\nLaunch anyway?"),
-                    T("起動前診断", "Pre-launch diagnostics"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    T("LaunchAnyway"),
+                    T("PreLaunchDiagnostics"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (diagnosticAnswer != DialogResult.Yes) return;
             }
             if (currentCollisions.Count > 0)
             {
                 string warning = BuildConflictWarning();
-                DialogResult answer = MessageBox.Show(warning, T("MOD競合の警告", "MOD Conflict Warning"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                DialogResult answer = MessageBox.Show(warning, T("MODConflictWarning"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (answer != DialogResult.Yes) return;
             }
             string exe = Path.Combine(settings.GameRoot ?? "", "DistantWorlds2.exe");
             if (!File.Exists(exe))
             {
-                MessageBox.Show(T("DistantWorlds2.exe が見つかりません。設定タブでゲームフォルダーを指定してください。", "DistantWorlds2.exe was not found. Set the game folder in Settings."), Text);
+                MessageBox.Show(T("GameExeNotFound"), Text);
                 return;
             }
             try
@@ -77,7 +77,7 @@ namespace DW2ModLauncherBeta
                 psi.Arguments = BuildLaunchArguments();
                 psi.UseShellExecute = true;
                 Process.Start(psi);
-                SetStatus(T("Distant Worlds 2 を起動しました。", "Distant Worlds 2 launched."));
+                SetStatus(T("DistantWorlds2Launched"));
             }
             catch (Exception ex)
             {

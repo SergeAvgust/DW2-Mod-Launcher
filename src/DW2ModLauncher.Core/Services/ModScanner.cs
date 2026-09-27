@@ -14,8 +14,8 @@ namespace DW2ModLauncher.Core.Services
     /// </summary>
     public static class ModScanner
     {
-        /// <param name="t">Bilingual text picker (ja, en) => localized string, matching MainForm.T.</param>
-        public static List<ModInfo> ScanMods(string root, bool workshop, Func<string, string, string> t)
+        /// <param name="t">Localization key lookup, matching MainForm.T.</param>
+        public static List<ModInfo> ScanMods(string root, bool workshop, Func<string, string> t)
         {
             List<ModInfo> result = new List<ModInfo>();
             if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) return result;
@@ -69,7 +69,7 @@ namespace DW2ModLauncher.Core.Services
             return null;
         }
 
-        public static ModInfo ReadModInfo(string dir, string modJson, bool workshop, Func<string, string, string> t)
+        public static ModInfo ReadModInfo(string dir, string modJson, bool workshop, Func<string, string> t)
         {
             ModInfo m = new ModInfo();
             m.Id = Path.GetFileName(dir);
@@ -78,7 +78,7 @@ namespace DW2ModLauncher.Core.Services
             m.Version = "";
             m.Folder = dir;
             m.IsWorkshop = workshop;
-            m.SourceName = workshop ? "Steam Workshop" : t("本体MODフォルダー", "Game MOD Folder");
+            m.SourceName = workshop ? "Steam Workshop" : t("GameMODFolder");
             m.ActiveToken = workshop ? "steam/" + m.Id : "mods/" + Path.GetFileName(dir);
             m.ContentRoot = dir;
             m.UpdateState = workshop ? "unknown" : "na";

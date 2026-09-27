@@ -16,7 +16,7 @@ namespace DW2ModLauncherBeta
 {
     public partial class MainForm
     {
-        private List<ModInfo> ScanMods(string root, bool workshop) { return ModScanner.ScanMods(root, workshop, T); }
+        private List<ModInfo> ScanMods(string root, bool workshop) { return ModScanner.ScanMods(root, workshop, key => T(key)); }
 
         private void RefreshAll()
         {
@@ -122,24 +122,24 @@ namespace DW2ModLauncherBeta
         {
             int count = mod == null || mod.IncludedDocuments == null ? 0 : mod.IncludedDocuments.Count;
             if (count == 0) return "—";
-            return count == 1 ? T("● 文書あり", "● Document found") : T("● 付属文書: " + count + "件", "● Documents: " + count);
+            return count == 1 ? T("DocumentFound") : T("Documents", count);
         }
 
         private string IncludedToolsSummary(ModInfo mod)
         {
             List<string> tools = mod == null || mod.IncludedTools == null ? new List<string>() : mod.IncludedTools;
             if (tools.Count == 0) return "—";
-            if (tools.Count > 1) return T("● 付属ツール: " + tools.Count + "件", "● Included tools: " + tools.Count);
+            if (tools.Count > 1) return T("IncludedTools", tools.Count);
             bool installer = tools.Any(x => Path.GetFileName(x).Equals("INSTALL.bat", StringComparison.OrdinalIgnoreCase) || Path.GetFileName(x).StartsWith("INSTALL_", StringComparison.OrdinalIgnoreCase));
             bool updater = tools.Any(x => Path.GetFileName(x).IndexOf("UPDATE", StringComparison.OrdinalIgnoreCase) >= 0);
             bool config = tools.Any(x => Path.GetFileName(x).IndexOf("CONFIG", StringComparison.OrdinalIgnoreCase) >= 0 || Path.GetFileName(x).IndexOf("SETTING", StringComparison.OrdinalIgnoreCase) >= 0);
-            if (installer) return T("● インストーラーあり", "● Installer found");
-            if (updater) return T("● 更新ツールあり", "● Update tool found");
-            if (config) return T("● 設定ツールあり", "● Config tool found");
+            if (installer) return T("InstallerFound");
+            if (updater) return T("UpdateToolFound");
+            if (config) return T("ConfigToolFound");
             bool bat = tools.Any(x => Path.GetExtension(x).Equals(".bat", StringComparison.OrdinalIgnoreCase));
             bool exe = tools.Any(x => Path.GetExtension(x).Equals(".exe", StringComparison.OrdinalIgnoreCase));
-            if (bat && exe) return T("● BAT／EXEあり", "● BAT / EXE found");
-            return bat ? T("● BATあり", "● BAT found") : T("● EXEあり", "● EXE found");
+            if (bat && exe) return T("BATEXEFound");
+            return bat ? T("BATFound") : T("EXEFound");
         }
 
         private void PopulateList(ListView list, ImageList images, List<ModInfo> mods)
@@ -174,7 +174,7 @@ namespace DW2ModLauncherBeta
                     item.SubItems.Add("");
                     item.SubItems.Add("");
                     item.SubItems.Add("");
-                    item.SubItems.Add(!mod.IsWorkshop ? "—" : T("未確認", "Not checked"));
+                    item.SubItems.Add(!mod.IsWorkshop ? "—" : T("NotCheckedPlain"));
                     int orderIndex = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
                     item.SubItems.Add(orderIndex < 0 ? "—" : (orderIndex + 1).ToString(CultureInfo.InvariantCulture));
                     item.UseItemStyleForSubItems = false;
@@ -214,20 +214,20 @@ namespace DW2ModLauncherBeta
             StringBuilder b = new StringBuilder();
             if (!string.IsNullOrWhiteSpace(mod.Description)) b.AppendLine(mod.Description.Trim());
             b.AppendLine();
-            b.AppendLine(T("取得元: ", "Source: ") + (mod.SourceName ?? ""));
-            b.AppendLine(T("状態: ", "State: ") + (IsModSelected(mod) ? "ON" : "OFF"));
+            b.AppendLine(Labeled("Source", mod.SourceName ?? ""));
+            b.AppendLine(T("State") + (IsModSelected(mod) ? "ON" : "OFF"));
             b.AppendLine(mod.Folder ?? "");
-            if (!string.IsNullOrWhiteSpace(mod.ModJsonLaunchArguments)) b.AppendLine(T("自動起動引数: ", "Automatic launch arguments: ") + mod.ModJsonLaunchArguments);
+            if (!string.IsNullOrWhiteSpace(mod.ModJsonLaunchArguments)) b.AppendLine(T("AutomaticLaunchArguments") + mod.ModJsonLaunchArguments);
             if (mod.IncludedTools != null && mod.IncludedTools.Count > 0)
             {
                 b.AppendLine();
-                b.AppendLine(T("付属ツール: ", "Included tools: ") + mod.IncludedTools.Count);
+                b.AppendLine(T("IncludedToolsLabel") + mod.IncludedTools.Count);
                 foreach (string tool in mod.IncludedTools) b.AppendLine("  • " + tool);
             }
             if (mod.IncludedDocuments != null && mod.IncludedDocuments.Count > 0)
             {
                 b.AppendLine();
-                b.AppendLine(T("付属文書: ", "Included documents: ") + mod.IncludedDocuments.Count);
+                b.AppendLine(T("IncludedDocuments") + mod.IncludedDocuments.Count);
                 foreach (string document in mod.IncludedDocuments) b.AppendLine("  • " + document);
             }
             if (mod.RequiredMods != null && mod.RequiredMods.Count > 0) b.AppendLine("Required: " + string.Join(", ", mod.RequiredMods.ToArray()));
@@ -239,7 +239,7 @@ namespace DW2ModLauncherBeta
             if (mod.DuplicateCount > 0)
             {
                 b.AppendLine();
-                b.AppendLine(T("● 重複導入: ", "● Duplicate installations: ") + mod.DuplicateCount + T("か所", " locations"));
+                b.AppendLine(T("DuplicateInstallationsDetail") + mod.DuplicateCount + T("Locations"));
                 foreach (string location in mod.DuplicateLocations.Take(8)) b.AppendLine("  • " + location);
             }
 
@@ -248,10 +248,10 @@ namespace DW2ModLauncherBeta
                 if (mod.ConflictCount > 0)
                 {
                     b.AppendLine();
-                    b.AppendLine(T("● 競合あり: ", "● Conflicts: ") + mod.ConflictCount + T("ファイル", " files") +
-                        T("（高危険 ", " (high ") + mod.HighRiskConflictCount + T("／低危険 ", " / low ") + mod.LowRiskConflictCount + "）");
+                    b.AppendLine(T("Conflicts") + mod.ConflictCount + T("Files") +
+                        T("High") + mod.HighRiskConflictCount + T("Low") + mod.LowRiskConflictCount + "）");
                     if (mod.ConflictMods != null && mod.ConflictMods.Count > 0)
-                        b.AppendLine(T("競合MOD: ", "Conflicts with: ") + string.Join(", ", mod.ConflictMods.Take(8).ToArray()));
+                        b.AppendLine(T("ConflictsWith") + string.Join(", ", mod.ConflictMods.Take(8).ToArray()));
                     if (mod.ConflictFiles != null)
                     {
                         foreach (string file in mod.ConflictFiles.Take(8)) b.AppendLine("  • " + file);
@@ -261,30 +261,30 @@ namespace DW2ModLauncherBeta
                 else
                 {
                     b.AppendLine();
-                    b.AppendLine(T("● 競合なし", "● No file conflicts"));
-                    if (mod.IdenticalFileCount > 0) b.AppendLine(T("同一パス・同一内容: ", "Same path and identical content: ") + mod.IdenticalFileCount);
+                    b.AppendLine(T("NoFileConflicts"));
+                    if (mod.IdenticalFileCount > 0) b.AppendLine(T("SamePathAndIdenticalContent") + mod.IdenticalFileCount);
                 }
             }
             else
             {
                 b.AppendLine();
-                b.AppendLine(T("MODはOFFです。競合判定の対象外です。", "MOD is OFF and excluded from conflict analysis."));
+                b.AppendLine(T("ModDisabledNote"));
             }
 
             if (mod.IsWorkshop)
             {
                 b.AppendLine();
                 if (mod.UpdateState == "update")
-                    b.AppendLine(T("⚠ Steam Workshop: 更新あり", "⚠ Steam Workshop: Update available"));
+                    b.AppendLine(T("SteamWorkshopUpdateAvailable"));
                 else if (mod.UpdateState == "current")
-                    b.AppendLine(T("● Steam Workshop: 最新", "● Steam Workshop: Up to date"));
+                    b.AppendLine(T("SteamWorkshopUpToDate"));
                 else
-                    b.AppendLine(T("? Steam Workshop: 更新状態未確認", "? Steam Workshop: Update state unknown"));
+                    b.AppendLine(T("WorkshopStateUnknown"));
 
                 if (mod.LocalWorkshopTimeUpdated > 0)
-                    b.AppendLine(T("ローカル更新: ", "Local update: ") + UnixTimeText(mod.LocalWorkshopTimeUpdated));
+                    b.AppendLine(T("LocalUpdate") + UnixTimeText(mod.LocalWorkshopTimeUpdated));
                 if (mod.RemoteWorkshopTimeUpdated > 0)
-                    b.AppendLine(T("Steam更新: ", "Steam update: ") + UnixTimeText(mod.RemoteWorkshopTimeUpdated));
+                    b.AppendLine(T("SteamUpdate") + UnixTimeText(mod.RemoteWorkshopTimeUpdated));
             }
             desc.Text = b.ToString();
         }
@@ -329,8 +329,8 @@ namespace DW2ModLauncherBeta
 
             stateEditor = new ComboBox();
             stateEditor.DropDownStyle = ComboBoxStyle.DropDownList;
-            stateEditor.Items.Add(T("有効（ON）", "Enabled (ON)"));
-            stateEditor.Items.Add(T("無効（OFF）", "Disabled (OFF)"));
+            stateEditor.Items.Add(T("Enabled"));
+            stateEditor.Items.Add(T("Disabled"));
             stateEditor.SelectedIndex = IsModSelected(mod) ? 0 : 1;
             Rectangle bounds = hit.SubItem.Bounds;
             stateEditor.Bounds = new Rectangle(bounds.X, bounds.Y, Math.Max(105, bounds.Width), bounds.Height + 2);
@@ -387,7 +387,7 @@ namespace DW2ModLauncherBeta
             {
                 if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
                 {
-                    MessageBox.Show(T("フォルダーが見つかりません。", "Folder not found."), Text);
+                    MessageBox.Show(T("FolderNotFound"), Text);
                     return;
                 }
                 Process.Start("explorer.exe", "\"" + path + "\"");
@@ -399,13 +399,13 @@ namespace DW2ModLauncherBeta
         {
             if (list == null || list.SelectedItems.Count == 0)
             {
-                MessageBox.Show(T("一覧からMODを選択してください。", "Select a MOD from the list."), Text);
+                MessageBox.Show(T("SelectAMODFromTheList"), Text);
                 return;
             }
             ModInfo mod = list.SelectedItems[0].Tag as ModInfo;
             if (mod == null || string.IsNullOrWhiteSpace(mod.Folder) || !Directory.Exists(mod.Folder))
             {
-                MessageBox.Show(T("選択したMODのフォルダーが見つかりません。", "The selected MOD folder was not found."), Text);
+                MessageBox.Show(T("ModFolderNotFound"), Text);
                 return;
             }
             OpenFolder(mod.Folder);
@@ -427,7 +427,7 @@ namespace DW2ModLauncherBeta
             if (mod == null) return;
             using (Form detail = new Form())
             {
-                detail.Text = T("MOD詳細 - ", "MOD Details - ") + (mod.DisplayName ?? mod.Id);
+                detail.Text = T("MODDetails") + (mod.DisplayName ?? mod.Id);
                 detail.StartPosition = FormStartPosition.CenterParent;
                 detail.Size = new Size(900, 680);
                 detail.MinimumSize = new Size(720, 520);
@@ -453,10 +453,10 @@ namespace DW2ModLauncherBeta
                 Label meta = new Label();
                 meta.Location = new Point(302, 84);
                 meta.Size = new Size(550, 85);
-                meta.Text = T("取得元: ", "Source: ") + (mod.SourceName ?? "") + "\r\n" +
-                    T("バージョン: ", "Version: ") + (mod.Version ?? "") + "\r\n" +
+                meta.Text = Labeled("Source", mod.SourceName ?? "") + "\r\n" +
+                    Labeled("Version", mod.Version ?? "") + "\r\n" +
                     (mod.IsWorkshop ? "Workshop ID: " + mod.Id + "\r\n" : "") +
-                    T("保存場所: ", "Location: ") + (mod.Folder ?? "");
+                    T("Location") + (mod.Folder ?? "");
                 detail.Controls.Add(meta);
 
                 TextBox information = new TextBox();
@@ -471,42 +471,42 @@ namespace DW2ModLauncherBeta
                 string description = !string.IsNullOrWhiteSpace(mod.WorkshopDescription) ? mod.WorkshopDescription : mod.Description;
                 if (!string.IsNullOrWhiteSpace(description)) body.AppendLine(Regex.Replace(description, "\\[/?[^\\]]+\\]", ""));
                 body.AppendLine();
-                if (mod.WorkshopFileSize > 0) body.AppendLine(T("ファイルサイズ: ", "File size: ") + mod.WorkshopFileSize + " bytes");
-                if (!string.IsNullOrWhiteSpace(mod.WorkshopCreator)) body.AppendLine(T("作者Steam ID: ", "Creator Steam ID: ") + mod.WorkshopCreator);
-                if (mod.WorkshopTimeCreated > 0) body.AppendLine(T("作成日時: ", "Created: ") + UnixTimeText(mod.WorkshopTimeCreated));
-                if (mod.RemoteWorkshopTimeUpdated > 0) body.AppendLine(T("更新日時: ", "Updated: ") + UnixTimeText(mod.RemoteWorkshopTimeUpdated));
-                if (!string.IsNullOrWhiteSpace(mod.WorkshopTags)) body.AppendLine(T("タグ: ", "Tags: ") + mod.WorkshopTags);
+                if (mod.WorkshopFileSize > 0) body.AppendLine(T("FileSize") + mod.WorkshopFileSize + " bytes");
+                if (!string.IsNullOrWhiteSpace(mod.WorkshopCreator)) body.AppendLine(T("CreatorSteamID") + mod.WorkshopCreator);
+                if (mod.WorkshopTimeCreated > 0) body.AppendLine(T("Created") + UnixTimeText(mod.WorkshopTimeCreated));
+                if (mod.RemoteWorkshopTimeUpdated > 0) body.AppendLine(T("Updated") + UnixTimeText(mod.RemoteWorkshopTimeUpdated));
+                if (!string.IsNullOrWhiteSpace(mod.WorkshopTags)) body.AppendLine(T("Tags") + mod.WorkshopTags);
                 if (mod.ConflictCount > 0)
                 {
-                    body.AppendLine(); body.AppendLine(T("競合ファイル:", "Conflict files:"));
+                    body.AppendLine(); body.AppendLine(T("ConflictFilesHeader"));
                     foreach (string f in mod.ConflictFiles) body.AppendLine(" • " + f);
                 }
                 if (mod.DuplicateCount > 0)
                 {
-                    body.AppendLine(); body.AppendLine(T("重複インストール場所:", "Duplicate installation locations:"));
-                    body.AppendLine(T("現在: ", "Current: ") + mod.SourceName + " | " + mod.Folder);
+                    body.AppendLine(); body.AppendLine(T("DuplicateLocationsHeader"));
+                    body.AppendLine(T("CurrentLocationLabel") + mod.SourceName + " | " + mod.Folder);
                     foreach (string d in mod.DuplicateLocations) body.AppendLine(" • " + d);
                 }
                 information.Text = body.ToString();
                 detail.Controls.Add(information);
 
-                Button folder = MakeButton(T("MODフォルダーを開く", "Open MOD Folder"), 18, 590, 180, 34);
+                Button folder = MakeButton(T("OpenMODFolder"), 18, 590, 180, 34);
                 folder.Click += delegate { OpenFolder(mod.Folder); };
                 detail.Controls.Add(folder);
                 if (mod.IsWorkshop)
                 {
-                    Button steam = MakeButton(T("Workshopページ", "Workshop Page"), 212, 590, 170, 34);
+                    Button steam = MakeButton(T("WorkshopPage"), 212, 590, 170, 34);
                     steam.Click += delegate { try { Process.Start("steam://url/CommunityFilePage/" + mod.Id); } catch { } };
                     detail.Controls.Add(steam);
                 }
                 string ini = FindManagedIni(mod);
                 if (ini != null)
                 {
-                    Button iniButton = MakeButton(T("INI個別設定", "INI Settings"), 396, 590, 150, 34);
+                    Button iniButton = MakeButton(T("INISettings"), 396, 590, 150, 34);
                     iniButton.Click += delegate { detail.Close(); OpenIniEditor(mod); };
                     detail.Controls.Add(iniButton);
                 }
-                Button close = MakeButton(T("閉じる", "Close"), 732, 590, 130, 34);
+                Button close = MakeButton(T("Close"), 732, 590, 130, 34);
                 close.DialogResult = DialogResult.OK;
                 detail.Controls.Add(close);
                 detail.ShowDialog(this);
@@ -526,7 +526,7 @@ namespace DW2ModLauncherBeta
             }
             using (Form picker = new Form())
             {
-                picker.Text = T("付属ツールを選択", "Select Included Tool");
+                picker.Text = T("SelectIncludedTool");
                 picker.StartPosition = FormStartPosition.CenterParent;
                 picker.FormBorderStyle = FormBorderStyle.Sizable;
                 picker.MinimumSize = new Size(620, 240);
@@ -539,7 +539,7 @@ namespace DW2ModLauncherBeta
                 note.Height = 55;
                 note.Padding = new Padding(14, 12, 14, 4);
                 note.ForeColor = Dw2Gold;
-                note.Text = T("実行する付属ツールを選択してください。各ボタンを押すと最終確認が表示されます。", "Select a tool to run. A final confirmation appears after clicking each button.");
+                note.Text = T("ToolPickerHint");
                 picker.Controls.Add(note);
 
                 FlowLayoutPanel buttons = new FlowLayoutPanel();
@@ -571,13 +571,11 @@ namespace DW2ModLauncherBeta
             string fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(fullPath))
             {
-                MessageBox.Show(T("付属ツールが見つからないか、MODフォルダー外を参照しています。", "The tool is missing or points outside the MOD folder."), Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(T("ToolMissingWarning"), Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            string warning = T(
-                "外部プログラムを実行します。信頼できるMODに付属するファイルだけ実行してください。\r\n\r\nファイル: ",
-                "This will run an external program. Only run files supplied by a MOD you trust.\r\n\r\nFile: ") + fullPath;
-            if (MessageBox.Show(warning, T("付属ツールの実行確認", "Confirm Tool Execution"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            string warning = T("ExternalProgramWarning") + fullPath;
+            if (MessageBox.Show(warning, T("ConfirmToolExecution"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
             try
             {
                 ProcessStartInfo start = new ProcessStartInfo();
@@ -605,7 +603,7 @@ namespace DW2ModLauncherBeta
             }
             using (Form picker = new Form())
             {
-                picker.Text = T("付属文書を選択", "Select Included Document");
+                picker.Text = T("SelectIncludedDocument");
                 picker.StartPosition = FormStartPosition.CenterParent;
                 picker.MinimumSize = new Size(620, 240);
                 picker.Size = new Size(650, Math.Min(560, 150 + mod.IncludedDocuments.Count * 45));
@@ -616,7 +614,7 @@ namespace DW2ModLauncherBeta
                 note.Height = 55;
                 note.Padding = new Padding(14, 12, 14, 4);
                 note.ForeColor = Dw2Gold;
-                note.Text = T("開くREADME／マニュアルを選択してください。", "Select a README or manual to open.");
+                note.Text = T("SelectAREADMEOrManualToOpen");
                 picker.Controls.Add(note);
                 FlowLayoutPanel buttons = new FlowLayoutPanel();
                 buttons.Dock = DockStyle.Fill;
@@ -649,7 +647,7 @@ namespace DW2ModLauncherBeta
                 string fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
                 if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(fullPath))
                 {
-                    MessageBox.Show(T("付属文書が見つからないか、MODフォルダー外を参照しています。", "The document is missing or points outside the MOD folder."), Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(T("DocumentMissingWarning"), Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 ProcessStartInfo start = new ProcessStartInfo();

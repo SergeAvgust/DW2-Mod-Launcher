@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using DW2ModLauncher.Core.Diagnostics;
 using DW2ModLauncher.Core.Models;
@@ -189,8 +190,8 @@ namespace DW2ModLauncherBeta
         {
             if (settings == null) settings = new LauncherSettings();
             if (settings.SelectedMods == null) settings.SelectedMods = new Dictionary<string, bool>();
-            if (string.IsNullOrWhiteSpace(settings.Language)) settings.Language = "ja";
-            if (settings.Language != "ja" && settings.Language != "en") settings.Language = "ja";
+            if (string.IsNullOrWhiteSpace(settings.Language)) settings.Language = "en";
+            if (!Localization.AvailableLanguageCodes().Contains(settings.Language)) settings.Language = "en";
             if (settings.GameRoot == null) settings.GameRoot = "";
             if (settings.WorkshopRoot == null) settings.WorkshopRoot = "";
             if (settings.ManagedModsRoot == null) settings.ManagedModsRoot = "";
@@ -210,7 +211,7 @@ namespace DW2ModLauncherBeta
             catch (Exception ex)
             {
                 Logger.LogException(name, ex);
-                SetStatus(T("一部処理をスキップしました: ", "Skipped a failed step: ") + name + " - " + ex.Message);
+                SetStatus("Skipped a failed step: " + name + " - " + ex.Message);
             }
         }
     }

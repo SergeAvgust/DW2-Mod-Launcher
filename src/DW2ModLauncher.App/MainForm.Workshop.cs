@@ -25,7 +25,7 @@ namespace DW2ModLauncherBeta
             updateCheckRunning = true;
             workshopCheckWasManual = force;
             if (workshopUpdateButton != null) workshopUpdateButton.Enabled = false;
-            SetStatus(T("Steam Workshopの更新を確認しています...", "Checking Steam Workshop updates..."));
+            SetStatus(T("CheckingSteamWorkshopUpdates"));
 
             string manifestPath = FindWorkshopManifestPath();
             List<string> ids = currentWorkshopMods.Where(m => m != null).Select(m => m.Id).Where(id => !string.IsNullOrWhiteSpace(id) && Regex.IsMatch(id, "^\\d+$")).Distinct().ToList();
@@ -61,7 +61,7 @@ namespace DW2ModLauncherBeta
                     if (e != null && e.Error != null)
                     {
                         Logger.LogException("Workshop background worker", e.Error);
-                        SetStatus(T("Workshop更新確認に失敗しました。ランチャーは継続します。", "Workshop update check failed. Launcher will continue."));
+                        SetStatus(T("WorkshopCheckFailed"));
                         UpdateOverallStatus();
                         return;
                     }
@@ -72,7 +72,7 @@ namespace DW2ModLauncherBeta
                 catch (Exception ex)
                 {
                     Logger.LogException("Workshop completion", ex);
-                    SetStatus(T("Workshop更新結果の反映をスキップしました。", "Skipped applying Workshop update results."));
+                    SetStatus(T("WorkshopResultsSkipped"));
                     UpdateOverallStatus();
                 }
             };
@@ -132,20 +132,20 @@ namespace DW2ModLauncherBeta
             RefreshModStatusColumns();
             RefreshSelectedDetails();
             if (!string.IsNullOrWhiteSpace(r.Error))
-                SetStatus(T("Workshop更新確認: Steam通信に失敗しました。ローカルACF情報のみ使用。 ", "Workshop update check: Steam request failed; local ACF data only. ") + r.Error);
+                SetStatus(T("WorkshopCheckSteamFailed") + r.Error);
             else if (updates > 0)
             {
-                SetStatus(T("Steam Workshop: 更新あり ", "Steam Workshop: updates available ") + updates);
+                SetStatus(T("WorkshopUpdatesAvailableStatus") + updates);
                 if (workshopCheckWasManual)
                 {
                     List<ModInfo> updateMods = currentWorkshopMods.Where(m => m != null && m.UpdateState == "update").ToList();
-                    if (MessageBox.Show(T("更新前のWorkshop MODをバックアップしますか？", "Back up Workshop MODs before updating?"),
-                        T("更新前バックアップ", "Pre-update backup"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    if (MessageBox.Show(T("BackupBeforeUpdatePrompt"),
+                        T("PreUpdateBackup"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                         BackupWorkshopMods(updateMods);
                 }
             }
             else
-                SetStatus(T("Steam Workshop: 更新は見つかりませんでした。", "Steam Workshop: no updates found."));
+                SetStatus(T("SteamWorkshopNoUpdatesFound"));
         }
 
         private void BackupWorkshopMods(IEnumerable<ModInfo> mods)
@@ -160,7 +160,7 @@ namespace DW2ModLauncherBeta
                     CopyDirectory(mod.Folder, Path.Combine(root, SafeFileName(mod.Id + "_v" + (mod.Version ?? "unknown"))));
                     count++;
                 }
-                MessageBox.Show(T("Workshop旧版を保存しました: ", "Workshop backups saved: ") + count + "\r\n" + root, Text);
+                MessageBox.Show(T("WorkshopBackupsSaved") + count + "\r\n" + root, Text);
             }
             catch (Exception ex) { Logger.LogException("Workshop backup", ex); MessageBox.Show(ex.Message, Text); }
         }
@@ -179,7 +179,7 @@ namespace DW2ModLauncherBeta
         {
             if (modList == null || modList.SelectedItems.Count == 0)
             {
-                MessageBox.Show(T("Workshop MODを1つ選択してください。", "Select a Workshop mod first."), Text);
+                MessageBox.Show(T("SelectAWorkshopModFirst"), Text);
                 return;
             }
             ModInfo mod = modList.SelectedItems[0].Tag as ModInfo;

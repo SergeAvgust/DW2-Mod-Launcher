@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using DW2ModLauncher.Core.Models;
 
@@ -44,23 +46,46 @@ namespace DW2ModLauncherBeta
             subtitle.Location = new Point(17, 39);
             top.Controls.Add(subtitle);
 
-            Label langLabel = new Label();
-            langLabel.Name = "LanguageCaption";
-            langLabel.Text = "言語 / Language";
-            langLabel.AutoSize = true;
-            langLabel.Location = new Point(360, 16);
-            top.Controls.Add(langLabel);
-
+            // The language list itself, and each entry's display name, come
+            // entirely from whatever "_displayName" a Languages/*.json pack
+            // declares - adding a language never requires a code change here.
+            List<string> languageCodes = Localization.AvailableLanguageCodes().ToList();
             languageCombo = new ComboBox();
             languageCombo.DropDownStyle = ComboBoxStyle.DropDownList;
-            languageCombo.Items.Add("日本語");
-            languageCombo.Items.Add("English");
-            languageCombo.Width = 130;
-            languageCombo.Location = new Point(465, 12);
-            languageCombo.SelectedIndex = settings.Language == "en" ? 1 : 0;
+            languageCombo.DrawMode = DrawMode.OwnerDrawFixed;
+            languageCombo.ItemHeight = 22;
+            languageCombo.DropDownWidth = 150;
+            foreach (string code in languageCodes) languageCombo.Items.Add(code);
+            languageCombo.DrawItem += delegate(object sender, DrawItemEventArgs e)
+            {
+                if (e.Index < 0 || e.Index >= languageCodes.Count) { e.DrawBackground(); return; }
+                string itemCode = languageCodes[e.Index];
+                string codeLabel = itemCode.ToUpperInvariant();
+                e.DrawBackground();
+                bool isClosedButton = (e.State & DrawItemState.ComboBoxEdit) != 0;
+                if (isClosedButton)
+                {
+                    TextRenderer.DrawText(e.Graphics, codeLabel, languageCombo.Font, e.Bounds, e.ForeColor,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                }
+                else
+                {
+                    TextRenderer.DrawText(e.Graphics, codeLabel, languageCombo.Font, new Rectangle(e.Bounds.X + 4, e.Bounds.Y, 28, e.Bounds.Height),
+                        e.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                    TextRenderer.DrawText(e.Graphics, Localization.DisplayNameFor(itemCode), languageCombo.Font,
+                        new Rectangle(e.Bounds.X + 34, e.Bounds.Y, e.Bounds.Width - 38, e.Bounds.Height),
+                        e.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                }
+                e.DrawFocusRectangle();
+            };
+            languageCombo.Width = 46;
+            languageCombo.Location = new Point(370, 12);
+            languageCombo.SelectedIndex = Math.Max(0, languageCodes.IndexOf(settings.Language));
             languageCombo.SelectedIndexChanged += delegate
             {
-                settings.Language = languageCombo.SelectedIndex == 1 ? "en" : "ja";
+                int index = languageCombo.SelectedIndex;
+                if (index < 0 || index >= languageCodes.Count) return;
+                settings.Language = languageCodes[index];
                 ApplyLanguage();
                 SaveSettings();
                 ApplyLanguageToManagedMods();
@@ -321,23 +346,23 @@ namespace DW2ModLauncherBeta
             detailsButton.Click += delegate { OpenSelectedModDetails(list); };
             leftTop.Controls.Add(detailsButton);
 
-            Button toolsButton = MakeButton(T("ツール実行", "Run Tool"), 8, 41, 90, 30);
+            Button toolsButton = MakeButton(T("RunTool"), 8, 41, 90, 30);
             toolsButton.Name = "ModToolsButton";
             toolsButton.Enabled = false;
             toolsButton.Click += delegate { RunSelectedModTool(list); };
             leftTop.Controls.Add(toolsButton);
 
-            Button documentsButton = MakeButton(T("文書を開く", "Open Docs"), 106, 41, 90, 30);
+            Button documentsButton = MakeButton(T("OpenDocs"), 106, 41, 90, 30);
             documentsButton.Name = "ModDocumentsButton";
             documentsButton.Enabled = false;
             documentsButton.Click += delegate { OpenSelectedModDocument(list); };
             leftTop.Controls.Add(documentsButton);
 
-            workshopUpdateButton = MakeButton("更新確認", 204, 41, 95, 30);
+            workshopUpdateButton = MakeButton("更新確認", 204, 41, 130, 30);
             workshopUpdateButton.Click += delegate { BeginWorkshopUpdateCheck(true); };
             leftTop.Controls.Add(workshopUpdateButton);
 
-            workshopSteamButton = MakeButton("Steamページ", 307, 41, 100, 30);
+            workshopSteamButton = MakeButton("Steamページ", 342, 41, 110, 30);
             workshopSteamButton.Enabled = false;
             workshopSteamButton.Click += delegate { OpenSelectedWorkshopPage(); };
             leftTop.Controls.Add(workshopSteamButton);
@@ -347,8 +372,8 @@ namespace DW2ModLauncherBeta
             hint.AutoSize = true;
             hint.ForeColor = Dw2Gold;
             hint.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            hint.Location = new Point(415, 47);
-            hint.Text = T("↕ 行をドラッグしてロード順を変更", "↕ Drag rows to change load order");
+            hint.Location = new Point(460, 47);
+            hint.Text = T("DragRowsToChangeLoadOrder");
             leftTop.Controls.Add(hint);
 
             TableLayoutPanel listLayout = new TableLayoutPanel();
@@ -568,7 +593,7 @@ namespace DW2ModLauncherBeta
 
             Label profileLabel = new Label();
             profileLabel.Name = "ProfileLabel";
-            profileLabel.Text = T("MODプロファイル", "MOD Profiles");
+            profileLabel.Text = T("MODProfiles");
             profileLabel.Location = new Point(28, 522);
             profileLabel.AutoSize = true;
             profileLabel.ForeColor = Dw2Gold;
@@ -580,11 +605,11 @@ namespace DW2ModLauncherBeta
             profileCombo.BackColor = Dw2Void;
             profileCombo.ForeColor = Dw2Text;
             p.Controls.Add(profileCombo);
-            Button saveProfile = MakeButton(T("現在構成を保存", "Save Current"), 292, 545, 145, 31);
-            Button applyProfile = MakeButton(T("構成を適用", "Apply Profile"), 449, 545, 120, 31);
-            Button deleteProfile = MakeButton(T("削除", "Delete"), 581, 545, 80, 31);
-            Button snapshot = MakeButton(T("スナップショット", "Snapshot"), 673, 545, 145, 31);
-            Button restoreSnapshot = MakeButton(T("最新へ戻す", "Restore Latest"), 830, 545, 115, 31);
+            Button saveProfile = MakeButton(T("SaveCurrent"), 292, 545, 145, 31);
+            Button applyProfile = MakeButton(T("ApplyProfile"), 449, 545, 120, 31);
+            Button deleteProfile = MakeButton(T("Delete"), 581, 545, 80, 31);
+            Button snapshot = MakeButton(T("Snapshot"), 673, 545, 145, 31);
+            Button restoreSnapshot = MakeButton(T("RestoreLatest"), 830, 545, 115, 31);
             saveProfile.Name = "SaveProfileButton";
             applyProfile.Name = "ApplyProfileButton";
             deleteProfile.Name = "DeleteProfileButton";
@@ -607,7 +632,7 @@ namespace DW2ModLauncherBeta
             beta.Location = new Point(28, 610);
             beta.Size = new Size(900, 80);
             beta.ForeColor = Dw2Muted;
-            beta.Text = T("v0.4.6: インストーラー・付属文書・管理ファイルをゲームデータ競合の判定対象から除外しました。", "v0.4.6 excludes installers, documents and launcher metadata from game-data conflict detection.");
+            beta.Text = T("BetaReleaseNote");
             p.Controls.Add(beta);
         }
 
@@ -654,87 +679,83 @@ namespace DW2ModLauncherBeta
         private void ApplyLanguage()
         {
             if (modsTab == null) return;
-            modsTab.Text = T("MOD一覧", "MODs");
+            modsTab.Text = T("MODs");
             aiTab.Text = "AI Commander";
-            settingsTab.Text = T("設定", "Settings");
-            refreshButton.Text = T("再読込", "Refresh");
-            playButton.Text = T("DW2を起動", "PLAY DW2");
-            if (modsNavigationButton != null) modsNavigationButton.Text = T("MOD一覧", "MODs");
+            settingsTab.Text = T("Settings");
+            refreshButton.Text = T("Refresh");
+            playButton.Text = T("PlayButton");
+            if (modsNavigationButton != null) modsNavigationButton.Text = T("MODs");
             if (aiNavigationButton != null) aiNavigationButton.Text = "AI Commander";
-            if (settingsNavigationButton != null) settingsNavigationButton.Text = T("設定", "Settings");
+            if (settingsNavigationButton != null) settingsNavigationButton.Text = T("Settings");
             RefreshNavigationButtons();
-            if (folderSettingsButton != null) folderSettingsButton.Text = T("検索フォルダー設定", "Scan Folders");
-            if (modRootButton != null) modRootButton.Text = T("MODルート", "MOD Root");
-            if (workshopRootButton != null) workshopRootButton.Text = T("Workshopルート", "Workshop Root");
-            if (selectedFolderButton != null) selectedFolderButton.Text = T("選択MODフォルダー", "Selected MOD Folder");
-            if (iniButton != null) iniButton.Text = T("INI個別設定", "INI Settings");
-            if (workshopUpdateButton != null) workshopUpdateButton.Text = T("更新確認", "Check Updates");
-            if (workshopSteamButton != null) workshopSteamButton.Text = T("Steamページ", "Steam Page");
-            if (detailsButton != null) detailsButton.Text = T("詳細", "Details");
+            if (folderSettingsButton != null) folderSettingsButton.Text = T("ScanFolders");
+            if (modRootButton != null) modRootButton.Text = T("MODRoot");
+            if (workshopRootButton != null) workshopRootButton.Text = T("WorkshopRoot");
+            if (selectedFolderButton != null) selectedFolderButton.Text = T("SelectedMODFolder");
+            if (iniButton != null) iniButton.Text = T("INISettings");
+            if (workshopUpdateButton != null) workshopUpdateButton.Text = T("CheckUpdates");
+            if (workshopSteamButton != null) workshopSteamButton.Text = T("SteamPage");
+            if (detailsButton != null) detailsButton.Text = T("Details");
             Control modToolsButton = FindControlRecursive(this, "ModToolsButton");
-            if (modToolsButton != null) modToolsButton.Text = T("ツール実行", "Run Tool");
+            if (modToolsButton != null) modToolsButton.Text = T("RunTool");
             Control modDocumentsButton = FindControlRecursive(this, "ModDocumentsButton");
-            if (modDocumentsButton != null) modDocumentsButton.Text = T("文書を開く", "Open Docs");
-            if (saveAiButton != null) saveAiButton.Text = T("INIへ保存", "Save INI");
-            if (reloadAiButton != null) reloadAiButton.Text = T("INI再読込", "Reload INI");
-            if (detectButton != null) detectButton.Text = T("自動検出", "Auto Detect");
-            if (saveSettingsButton != null) saveSettingsButton.Text = T("設定を保存", "Save Settings");
-            if (gameOpenButton != null) gameOpenButton.Text = T("ゲームフォルダー", "Game Folder");
-            if (aiEnabled != null) aiEnabled.Text = T("MOD全体", "Enable MOD");
-            if (aiWar != null) aiWar.Text = T("AI開戦判断", "AI War Decisions");
-            if (aiPeace != null) aiPeace.Text = T("AI停戦判断", "AI Peace Decisions");
-            if (aiUltimatum != null) aiUltimatum.Text = T("最後通牒", "Ultimatums");
-            if (aiAdvisor != null) aiAdvisor.Text = T("補佐官", "Advisor");
+            if (modDocumentsButton != null) modDocumentsButton.Text = T("OpenDocs");
+            if (saveAiButton != null) saveAiButton.Text = T("SaveINI");
+            if (reloadAiButton != null) reloadAiButton.Text = T("ReloadINI");
+            if (detectButton != null) detectButton.Text = T("AutoDetect");
+            if (saveSettingsButton != null) saveSettingsButton.Text = T("SaveSettings");
+            if (gameOpenButton != null) gameOpenButton.Text = T("GameFolder");
+            if (aiEnabled != null) aiEnabled.Text = T("EnableMOD");
+            if (aiWar != null) aiWar.Text = T("AIWarDecisions");
+            if (aiPeace != null) aiPeace.Text = T("AIPeaceDecisions");
+            if (aiUltimatum != null) aiUltimatum.Text = T("Ultimatums");
+            if (aiAdvisor != null) aiAdvisor.Text = T("Advisor");
             Control aiHeader = FindControlRecursive(this, "AiHeader");
-            if (aiHeader != null) aiHeader.Text = T("AI Commander 基本設定", "AI Commander Basic Settings");
+            if (aiHeader != null) aiHeader.Text = T("AICommanderBasicSettings");
             Control settingsHeader = FindControlRecursive(this, "SettingsHeader");
-            if (settingsHeader != null) settingsHeader.Text = T("パスと起動設定", "Paths and Launch Settings");
+            if (settingsHeader != null) settingsHeader.Text = T("PathsAndLaunchSettings");
             Control launchArgumentsLabel = FindControlRecursive(this, "LaunchArgumentsLabel");
-            if (launchArgumentsLabel != null) launchArgumentsLabel.Text = T("追加起動オプション", "Additional Launch Arguments");
+            if (launchArgumentsLabel != null) launchArgumentsLabel.Text = T("AdditionalLaunchArguments");
             Control commandPreviewLabel = FindControlRecursive(this, "CommandPreviewLabel");
-            if (commandPreviewLabel != null) commandPreviewLabel.Text = T("実際に使用する起動コマンド", "Effective Launch Command");
+            if (commandPreviewLabel != null) commandPreviewLabel.Text = T("EffectiveLaunchCommand");
             Control profileLabel = FindControlRecursive(this, "ProfileLabel");
-            if (profileLabel != null) profileLabel.Text = T("MODプロファイル", "MOD Profiles");
+            if (profileLabel != null) profileLabel.Text = T("MODProfiles");
             Control saveProfileButton = FindControlRecursive(this, "SaveProfileButton");
-            if (saveProfileButton != null) saveProfileButton.Text = T("現在構成を保存", "Save Current");
+            if (saveProfileButton != null) saveProfileButton.Text = T("SaveCurrent");
             Control applyProfileButton = FindControlRecursive(this, "ApplyProfileButton");
-            if (applyProfileButton != null) applyProfileButton.Text = T("構成を適用", "Apply Profile");
+            if (applyProfileButton != null) applyProfileButton.Text = T("ApplyProfile");
             Control deleteProfileButton = FindControlRecursive(this, "DeleteProfileButton");
-            if (deleteProfileButton != null) deleteProfileButton.Text = T("削除", "Delete");
+            if (deleteProfileButton != null) deleteProfileButton.Text = T("Delete");
             Control snapshotButton = FindControlRecursive(this, "SnapshotButton");
-            if (snapshotButton != null) snapshotButton.Text = T("スナップショット", "Snapshot");
+            if (snapshotButton != null) snapshotButton.Text = T("Snapshot");
             Control restoreSnapshotButton = FindControlRecursive(this, "RestoreSnapshotButton");
-            if (restoreSnapshotButton != null) restoreSnapshotButton.Text = T("最新へ戻す", "Restore Latest");
+            if (restoreSnapshotButton != null) restoreSnapshotButton.Text = T("RestoreLatest");
             Control modListHint = FindControlRecursive(this, "ModListHint");
-            if (modListHint != null) modListHint.Text = T("↕ 行をドラッグしてロード順を変更", "↕ Drag rows to change load order");
+            if (modListHint != null) modListHint.Text = T("DragRowsToChangeLoadOrder");
 
             if (currentManagedMods != null)
-                foreach (ModInfo mod in currentManagedMods) if (mod != null) mod.SourceName = T("本体MODフォルダー", "Game MOD Folder");
+                foreach (ModInfo mod in currentManagedMods) if (mod != null) mod.SourceName = T("GameMODFolder");
             if (currentWorkshopMods != null)
                 foreach (ModInfo mod in currentWorkshopMods) if (mod != null) mod.SourceName = "Steam Workshop";
             if (modList != null && modList.Columns.Count >= 9)
             {
-                modList.Columns[0].Text = T("MOD名", "MOD Name");
-                modList.Columns[1].Text = T("取得元", "Source");
-                modList.Columns[2].Text = T("付属ツール", "Included Tools");
-                modList.Columns[3].Text = T("付属文書", "Included Docs");
-                modList.Columns[4].Text = T("MOD状態", "MOD State");
-                modList.Columns[5].Text = T("競合状態", "Conflict State");
-                modList.Columns[6].Text = T("重複状態", "Duplicate State");
-                modList.Columns[7].Text = T("更新状態", "Update State");
-                modList.Columns[8].Text = T("ロード順", "Load Order");
+                modList.Columns[0].Text = T("MODName");
+                modList.Columns[1].Text = T("Source");
+                modList.Columns[2].Text = T("IncludedToolsColumn");
+                modList.Columns[3].Text = T("IncludedDocs");
+                modList.Columns[4].Text = T("MODState");
+                modList.Columns[5].Text = T("ConflictState");
+                modList.Columns[6].Text = T("DuplicateState");
+                modList.Columns[7].Text = T("UpdateState");
+                modList.Columns[8].Text = T("LoadOrder");
             }
 
             RefreshListSourceText(modList);
 
             Control aiNote = FindControlRecursive(this, "AiNote");
-            if (aiNote != null) aiNote.Text = T(
-                "ランチャーの言語変更は Language=ja/en にも反映します。\r\nこのベータ版では主要なON/OFF項目だけをGUI化しています。",
-                "Launcher language also updates Language=ja/en.\r\nThis beta exposes the main AI Commander switches in the GUI.");
+            if (aiNote != null) aiNote.Text = T("AiCommanderNote");
             Control beta = FindControlRecursive(this, "BetaNote");
-            if (beta != null) beta.Text = T(
-                "v0.4.6: インストーラー・付属文書・管理ファイルをゲームデータ競合の判定対象から除外しました。",
-                "v0.4.6 excludes installers, documents and launcher metadata from game-data conflict detection.");
+            if (beta != null) beta.Text = T("BetaReleaseNote");
         }
 
         private void RefreshListSourceText(ListView list)

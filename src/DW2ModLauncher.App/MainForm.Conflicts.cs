@@ -186,33 +186,33 @@ namespace DW2ModLauncherBeta
                 item.SubItems[2].ForeColor = mod.IncludedTools != null && mod.IncludedTools.Count > 0 ? Dw2Gold : Dw2Muted;
                 item.SubItems[3].Text = IncludedDocumentsSummary(mod);
                 item.SubItems[3].ForeColor = mod.IncludedDocuments != null && mod.IncludedDocuments.Count > 0 ? Dw2BlueGlow : Dw2Muted;
-                item.SubItems[4].Text = IsModSelected(mod) ? T("有効（ON） ▼", "Enabled (ON) ▼") : T("無効（OFF） ▼", "Disabled (OFF) ▼");
+                item.SubItems[4].Text = T(IsModSelected(mod) ? "Enabled" : "Disabled") + DropdownIndicator;
                 item.SubItems[4].ForeColor = IsModSelected(mod) ? Dw2Green : Dw2Muted;
 
                 if (!IsModSelected(mod))
                 {
-                    item.SubItems[5].Text = T("● MOD無効", "● MOD disabled");
+                    item.SubItems[5].Text = T("MODDisabled");
                     item.SubItems[5].ForeColor = Dw2Muted;
                 }
                 else if (mod.ConflictCount > 0)
                 {
                     item.SubItems[5].Text = mod.HighRiskConflictCount > 0
-                        ? T("● 高危険: " + mod.HighRiskConflictCount, "● High risk: " + mod.HighRiskConflictCount)
-                        : T("● 低危険: " + mod.LowRiskConflictCount, "● Low risk: " + mod.LowRiskConflictCount);
+                        ? T("HighRisk", mod.HighRiskConflictCount)
+                        : T("LowRisk", mod.LowRiskConflictCount);
                     item.SubItems[5].ForeColor = mod.HighRiskConflictCount > 0 ? Dw2Red : Dw2Gold;
                 }
                 else if (mod.IdenticalFileCount > 0)
                 {
-                    item.SubItems[5].Text = T("● 同一内容: " + mod.IdenticalFileCount, "● Identical: " + mod.IdenticalFileCount);
+                    item.SubItems[5].Text = T("Identical", mod.IdenticalFileCount);
                     item.SubItems[5].ForeColor = Dw2BlueGlow;
                 }
                 else
                 {
-                    item.SubItems[5].Text = T("● 競合なし", "● No conflicts");
+                    item.SubItems[5].Text = T("NoConflicts");
                     item.SubItems[5].ForeColor = Dw2Green;
                 }
 
-                item.SubItems[6].Text = mod.DuplicateCount > 0 ? T("● 重複導入: " + mod.DuplicateCount, "● Duplicates: " + mod.DuplicateCount) : T("● 重複なし", "● No duplicates");
+                item.SubItems[6].Text = mod.DuplicateCount > 0 ? T("Duplicates", mod.DuplicateCount) : T("NoDuplicates");
                 item.SubItems[6].ForeColor = mod.DuplicateCount > 0 ? Dw2Gold : Dw2Muted;
 
                 if (!mod.IsWorkshop)
@@ -222,17 +222,17 @@ namespace DW2ModLauncherBeta
                 }
                 else if (mod.UpdateState == "update")
                 {
-                    item.SubItems[7].Text = T("● 更新あり", "● Update available");
+                    item.SubItems[7].Text = T("UpdateAvailable");
                     item.SubItems[7].ForeColor = Dw2Gold;
                 }
                 else if (mod.UpdateState == "current")
                 {
-                    item.SubItems[7].Text = T("● 最新", "● Current");
+                    item.SubItems[7].Text = T("Current");
                     item.SubItems[7].ForeColor = Dw2Green;
                 }
                 else
                 {
-                    item.SubItems[7].Text = T("― 未確認", "— Not checked");
+                    item.SubItems[7].Text = T("NotChecked");
                     item.SubItems[7].ForeColor = Dw2Muted;
                 }
             }
@@ -252,19 +252,19 @@ namespace DW2ModLauncherBeta
             if (currentCollisions == null) currentCollisions = new Dictionary<string, List<ModInfo>>(StringComparer.OrdinalIgnoreCase);
             int updates = currentWorkshopMods.Count(m => m != null && m.UpdateState == "update");
             int selected = currentManagedMods.Concat(currentWorkshopMods).Where(m => m != null).Count(IsModSelected);
-            string conflictText = currentCollisions.Count == 0 ? T("競合なし", "No conflicts") : T("競合ファイル ", "Conflict files ") + currentCollisions.Count;
-            string updateText = updates == 0 ? T("更新なし/未確認", "No updates/unchecked") : T("更新あり ", "Updates ") + updates;
-            if (modOrderReadFailed) updateText = T("mods.json 読込失敗", "mods.json ERROR");
+            string conflictText = currentCollisions.Count == 0 ? T("NoConflictsStatus") : T("ConflictFiles") + currentCollisions.Count;
+            string updateText = updates == 0 ? T("NoUpdatesUnchecked") : T("Updates") + updates;
+            if (modOrderReadFailed) updateText = T("ModsJsonERROR");
             int duplicates = currentManagedMods.Concat(currentWorkshopMods).Count(m => m != null && m.DuplicateCount > 0);
-            string duplicateText = duplicates == 0 ? T("重複導入なし", "No duplicate installations") : T("重複導入 ", "Duplicate installations ") + duplicates;
-            statusLabel.Text = string.Format(T("DW2 MOD: {0}件｜Workshop: {1}件｜有効: {2}件｜{3}｜{4}｜{5}", "DW2 MODs: {0} | Workshop: {1} | Enabled: {2} | {3} | {4} | {5}"), currentManagedMods.Count, currentWorkshopMods.Count, selected, conflictText, duplicateText, updateText);
+            string duplicateText = duplicates == 0 ? T("NoDuplicateInstallations") : T("DuplicateInstallations") + duplicates;
+            statusLabel.Text = string.Format(T("DW2MODsWorkshopEnabled"), currentManagedMods.Count, currentWorkshopMods.Count, selected, conflictText, duplicateText, updateText);
         }
 
         private string BuildConflictWarning()
         {
             StringBuilder b = new StringBuilder();
-            b.AppendLine(T("選択中のMODに同じ相対パスのファイルが見つかりました。", "Selected mods contain files with the same relative path."));
-            b.AppendLine(T("DW2では上書き競合になる可能性があります。自動マージは行いません。", "These may overwrite each other in DW2. No automatic merge will be performed."));
+            b.AppendLine(T("ConflictWarningIntro"));
+            b.AppendLine(T("ConflictWarningBody"));
             b.AppendLine();
             foreach (KeyValuePair<string, List<ModInfo>> kv in currentCollisions.Take(10))
             {
@@ -273,7 +273,7 @@ namespace DW2ModLauncherBeta
             }
             if (currentCollisions.Count > 10) b.AppendLine("... +" + (currentCollisions.Count - 10));
             b.AppendLine();
-            b.AppendLine(T("この構成のまま起動しますか？（自己責任で続行）", "Launch with this configuration anyway? (Proceed at your own peril)"));
+            b.AppendLine(T("LaunchAnywayConfirm"));
             return b.ToString();
         }
 
@@ -290,23 +290,23 @@ namespace DW2ModLauncherBeta
             foreach (ModInfo mod in enabled)
             {
                 foreach (string required in mod.RequiredMods ?? new List<string>())
-                    if (!enabled.Any(m => matches(m, required))) issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + ": " + T("必須MODがありません: ", "Missing required MOD: ") + required);
+                    if (!enabled.Any(m => matches(m, required))) issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + ": " + T("MissingRequiredMOD") + required);
                 foreach (string incompatible in mod.IncompatibleMods ?? new List<string>())
-                    if (enabled.Any(m => m != mod && matches(m, incompatible))) issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + ": " + T("同時使用不可: ", "Incompatible MOD enabled: ") + incompatible);
+                    if (enabled.Any(m => m != mod && matches(m, incompatible))) issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + ": " + T("IncompatibleMODEnabled") + incompatible);
                 int ownIndex = currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, mod.ActiveToken, StringComparison.OrdinalIgnoreCase));
                 foreach (string before in mod.LoadBefore ?? new List<string>())
                 {
                     ModInfo target = enabled.FirstOrDefault(m => matches(m, before));
                     int targetIndex = target == null || currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, target.ActiveToken, StringComparison.OrdinalIgnoreCase));
                     if (target != null && ownIndex >= 0 && targetIndex >= 0 && ownIndex > targetIndex)
-                        issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + T(" は次のMODより先にロードする必要があります: ", " must load before: ") + before);
+                        issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + T("MustLoadBefore") + before);
                 }
                 foreach (string after in mod.LoadAfter ?? new List<string>())
                 {
                     ModInfo target = enabled.FirstOrDefault(m => matches(m, after));
                     int targetIndex = target == null || currentModOrder == null ? -1 : currentModOrder.FindIndex(x => string.Equals(x, target.ActiveToken, StringComparison.OrdinalIgnoreCase));
                     if (target != null && ownIndex >= 0 && targetIndex >= 0 && ownIndex < targetIndex)
-                        issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + T(" は次のMODより後にロードする必要があります: ", " must load after: ") + after);
+                        issues.Add("⚠ " + (mod.DisplayName ?? mod.Id) + T("MustLoadAfter") + after);
                 }
                 ValidateJsonFile(mod.ModJsonPath, issues);
                 ValidateJsonFile(Path.Combine(mod.Folder ?? "", "launcher.json"), issues);
@@ -315,7 +315,7 @@ namespace DW2ModLauncherBeta
                     foreach (string xml in Directory.GetFiles(mod.ContentRoot ?? mod.Folder, "*.xml", SearchOption.AllDirectories))
                     {
                         try { XmlDocument document = new XmlDocument(); document.Load(xml); }
-                        catch (Exception ex) { issues.Add("⚠ " + T("XML破損: ", "Invalid XML: ") + xml + " (" + ex.Message + ")"); }
+                        catch (Exception ex) { issues.Add("⚠ " + T("InvalidXML") + xml + " (" + ex.Message + ")"); }
                     }
                 }
                 catch { }
@@ -335,12 +335,12 @@ namespace DW2ModLauncherBeta
                 catch { }
             }
             foreach (KeyValuePair<string, List<string>> pair in dlls.Where(x => x.Value.Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1))
-                issues.Add("⚠ " + T("重複DLL: ", "Duplicate DLL: ") + pair.Key + " — " + string.Join(" / ", pair.Value.Distinct().ToArray()));
+                issues.Add("⚠ " + T("DuplicateDLL") + pair.Key + " — " + string.Join(" / ", pair.Value.Distinct().ToArray()));
             foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(BuildLaunchArguments(), "--low-level-inject\\s+(?:\\\"([^\\\"]+)\\\"|([^\\s!]+))!", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             {
                 string dll = !string.IsNullOrWhiteSpace(match.Groups[1].Value) ? match.Groups[1].Value : match.Groups[2].Value;
                 string full = Path.IsPathRooted(dll) ? dll : Path.Combine(settings.GameRoot ?? "", dll.Replace('/', Path.DirectorySeparatorChar));
-                if (!File.Exists(full)) issues.Add("⚠ " + T("起動引数のDLLがありません: ", "Launch argument DLL not found: ") + dll);
+                if (!File.Exists(full)) issues.Add("⚠ " + T("LaunchArgumentDLLNotFound") + dll);
             }
             return issues.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
@@ -349,7 +349,7 @@ namespace DW2ModLauncherBeta
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
             try { LooseJson.Parse(File.ReadAllText(path, Encoding.UTF8)); }
-            catch (Exception ex) { issues.Add("⚠ " + T("JSON破損: ", "Invalid JSON: ") + path + " (" + ex.Message + ")"); }
+            catch (Exception ex) { issues.Add("⚠ " + T("InvalidJSON") + path + " (" + ex.Message + ")"); }
         }
     }
 }

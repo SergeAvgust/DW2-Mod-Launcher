@@ -56,7 +56,7 @@ namespace DW2ModLauncherBeta
             string ini = FindAiIni();
             if (ini == null)
             {
-                MessageBox.Show(T("AI Commander INIが見つかりません。", "AI Commander INI was not found."), Text);
+                MessageBox.Show(T("AICommanderINIWasNotFound"), Text);
                 return;
             }
             Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -70,7 +70,7 @@ namespace DW2ModLauncherBeta
             values["BaseUrl"] = aiBaseUrl.Text.Trim();
             values["Model"] = aiModel.Text.Trim();
             WriteIniValues(ini, values);
-            SetStatus(T("AI Commander INIを保存しました。", "AI Commander INI saved."));
+            SetStatus(T("AICommanderINISaved"));
         }
 
         private void WriteIniValues(string path, Dictionary<string, string> values)
@@ -156,7 +156,7 @@ namespace DW2ModLauncherBeta
             string ini = FindManagedIni(mod);
             if (ini == null)
             {
-                MessageBox.Show(T("このMODには設定可能なINIがありません。", "This MOD has no configurable INI file."), Text);
+                MessageBox.Show(T("NoConfigurableIni"), Text);
                 return;
             }
 
@@ -165,18 +165,18 @@ namespace DW2ModLauncherBeta
             catch (Exception ex)
             {
                 Logger.LogException("Open individual INI editor", ex);
-                MessageBox.Show(T("INIを読み込めませんでした。", "The INI file could not be read.") + "\r\n" + ex.Message, Text);
+                MessageBox.Show("The INI file could not be read.\r\n" + ex.Message, Text);
                 return;
             }
             if (rows.Count == 0)
             {
-                MessageBox.Show(T("INIに設定項目が見つかりません。", "No settings were found in the INI file."), Text);
+                MessageBox.Show(T("IniHasNoSettings"), Text);
                 return;
             }
 
             using (Form editor = new Form())
             {
-                editor.Text = T("INI個別設定 - ", "Individual INI Settings - ") + (mod.DisplayName ?? Path.GetFileName(mod.Folder));
+                editor.Text = T("IndividualINISettings") + (mod.DisplayName ?? Path.GetFileName(mod.Folder));
                 editor.StartPosition = FormStartPosition.CenterParent;
                 editor.Size = new Size(980, 720);
                 editor.MinimumSize = new Size(760, 520);
@@ -190,8 +190,8 @@ namespace DW2ModLauncherBeta
                 bottom.BackColor = Dw2Void;
                 editor.Controls.Add(bottom);
 
-                Button save = MakeButton(T("保存", "Save"), 680, 12, 125, 34);
-                Button cancel = MakeButton(T("キャンセル", "Cancel"), 820, 12, 125, 34);
+                Button save = MakeButton(T("Save"), 680, 12, 125, 34);
+                Button cancel = MakeButton(T("Cancel"), 820, 12, 125, 34);
                 save.Anchor = AnchorStyles.Top | AnchorStyles.Right;
                 cancel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
                 cancel.DialogResult = DialogResult.Cancel;
@@ -209,9 +209,9 @@ namespace DW2ModLauncherBeta
                 editor.Controls.Add(table);
                 table.BringToFront();
 
-                table.Controls.Add(MakeIniHeader(T("設定項目", "Setting")), 0, 0);
-                table.Controls.Add(MakeIniHeader(T("値", "Value")), 1, 0);
-                table.Controls.Add(MakeIniHeader(T("説明", "Description")), 2, 0);
+                table.Controls.Add(MakeIniHeader(T("Setting")), 0, 0);
+                table.Controls.Add(MakeIniHeader(T("Value")), 1, 0);
+                table.Controls.Add(MakeIniHeader(T("Description")), 2, 0);
                 int rowIndex = 1;
                 foreach (IniEditorRow row in rows)
                 {
@@ -253,7 +253,7 @@ namespace DW2ModLauncherBeta
                 if (editor.ShowDialog(this) == DialogResult.OK)
                 {
                     if (ini.Equals(FindAiIni(), StringComparison.OrdinalIgnoreCase)) LoadAiSettings();
-                    SetStatus(T("INI個別設定を保存しました。", "Individual INI settings saved."));
+                    SetStatus(T("IndividualINISettingsSaved"));
                 }
             }
         }

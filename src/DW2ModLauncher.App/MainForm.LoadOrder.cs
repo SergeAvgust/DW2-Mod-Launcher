@@ -50,13 +50,13 @@ namespace DW2ModLauncherBeta
             if (populating || mod == null || string.IsNullOrWhiteSpace(mod.ActiveToken)) return;
             if (modOrderReadFailed)
             {
-                MessageBox.Show(T("mods.jsonが壊れているか読み取れないため、上書きを中止しました。", "mods.json is invalid or unreadable. The launcher will not overwrite it."), Text);
+                MessageBox.Show(T("ModsJsonInvalidWarning"), Text);
                 RefreshAll();
                 return;
             }
             if (IsGameRunning())
             {
-                MessageBox.Show(T("DW2起動中はMOD設定を変更できません。ゲーム終了後に変更してください。", "MOD settings cannot be changed while DW2 is running."), Text);
+                MessageBox.Show(T("GameRunningWarning"), Text);
                 RefreshAll();
                 return;
             }
@@ -83,13 +83,13 @@ namespace DW2ModLauncherBeta
                 else File.Move(temp, path);
                 currentModOrder = next;
                 modOrderFileFound = true;
-                SetStatus(T("DW2のMOD設定を保存しました。", "DW2 MOD settings saved."));
+                SetStatus(T("DW2MODSettingsSaved"));
             }
             catch (Exception ex)
             {
                 Logger.LogException("Write DW2 mods.json", ex);
                 try { if (File.Exists(temp)) File.Delete(temp); } catch { }
-                MessageBox.Show(T("mods.jsonの保存に失敗しました。", "Failed to save mods.json.") + "\r\n" + ex.Message, Text);
+                MessageBox.Show("Failed to save mods.json.\r\n" + ex.Message, Text);
                 LoadModOrder();
             }
         }
@@ -134,7 +134,7 @@ namespace DW2ModLauncherBeta
                 else File.Move(temp, path);
                 currentModOrder = document.order;
                 modOrderFileFound = true;
-                SetStatus(T("ロード順を保存しました。", "Load order saved."));
+                SetStatus(T("LoadOrderSaved"));
                 UpdateCommandPreview();
                 return true;
             }
@@ -142,7 +142,7 @@ namespace DW2ModLauncherBeta
             {
                 Logger.LogException("Write load order", ex);
                 try { if (File.Exists(temp)) File.Delete(temp); } catch { }
-                MessageBox.Show(T("ロード順を保存できませんでした。", "Could not save load order.") + "\r\n" + ex.Message, Text);
+                MessageBox.Show("Could not save load order.\r\n" + ex.Message, Text);
                 return false;
             }
         }

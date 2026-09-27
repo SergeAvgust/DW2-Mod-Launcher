@@ -16,7 +16,7 @@ namespace DW2ModLauncher.Core.Models
 
         public LauncherSettings()
         {
-            Language = "ja";
+            Language = "en";
             GameRoot = "";
             WorkshopRoot = "";
             ManagedModsRoot = "";
