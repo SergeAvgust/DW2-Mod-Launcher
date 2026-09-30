@@ -136,8 +136,6 @@ namespace DW2ModLauncherBeta
         private Button detectButton;
         private Button saveSettingsButton;
         private Button workshopUpdateButton;
-        private Button workshopSteamButton;
-        private Button detailsButton;
         private Button selectedFolderButton;
         private Button modsNavigationButton;
         private Button settingsNavigationButton;
