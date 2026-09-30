@@ -33,23 +33,6 @@ namespace DW2ModLauncherBeta
                 MessageBox.Show(T("PublishNotLocalMod"), Text);
                 return;
             }
-            string relative = ModPublishCommandBuilder.GetModsRelativePath(settings.GameRoot, mod.Folder);
-            if (relative == null)
-            {
-                MessageBox.Show(T("PublishRequiresGameModsFolder"), Text);
-                return;
-            }
-            if (IsGameRunning())
-            {
-                MessageBox.Show(T("GameRunningWarning"), Text);
-                return;
-            }
-            string exe = Path.Combine(settings.GameRoot ?? "", "DistantWorlds2.exe");
-            if (!File.Exists(exe))
-            {
-                MessageBox.Show(T("GameExeNotFound"), Text);
-                return;
-            }
 
             ModPublishMetadata metadata;
             try { metadata = ModPublishMetadataEditor.Read(mod.ModJsonPath); }
@@ -134,7 +117,7 @@ namespace DW2ModLauncherBeta
                     Location = new Point(24, 690),
                     Size = new Size(650, 100),
                     ForeColor = Dw2Muted,
-                    Text = T(isUpdate ? "PublishAboutToRunUpdate" : "PublishAboutToRunFirstTime", relative)
+                    Text = T(isUpdate ? "PublishAboutToRunUpdate" : "PublishAboutToRunFirstTime")
                 };
                 dialog.Controls.Add(note);
 
@@ -164,27 +147,34 @@ namespace DW2ModLauncherBeta
                     }
                 };
 
-                if (dialog.ShowDialog(this) == DialogResult.OK) RunPublishProcess(mod, isUpdate);
+                if (dialog.ShowDialog(this) == DialogResult.OK) RunPublishProcess(mod, metadata);
             }
         }
 
-        // Only this method (and ApplyCapturedWorkshopId/OpenCaptureWorkshopIdDialog below) know
-        // IModPublisher exists - everything about how a publish actually happens (attaching to a
-        // console, killing the process, or something completely different for a future publisher)
-        // is that implementation's own business, not this class's.
-        private void RunPublishProcess(ModInfo mod, bool isUpdate)
+        // Only this method (and ApplyPublishSuccess below) know IModPublisher exists - everything
+        // about how a publish actually happens is that implementation's own business, not this
+        // class's. SteamworksModPublisher talks to the Steamworks API in-process (see
+        // docs/workshop-publish.md), so - unlike the old DW2.exe-shelling approach - the result is
+        // always known synchronously: either a real WorkshopId or a real ErrorMessage, never "maybe."
+        private void RunPublishProcess(ModInfo mod, ModPublishMetadata metadata)
         {
             if (publishRunning) return;
             publishRunning = true;
             if (publishButton != null) publishButton.Enabled = false;
             SetStatus(T("PublishRunning"));
 
-            IModPublisher publisher = new Dw2ExeModPublisher(settings.GameRoot);
-            string modName = ModPublishCommandBuilder.GetModsRelativePath(settings.GameRoot, mod.Folder);
-            if (modName != null && modName.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)) modName = modName["mods/".Length..];
+            IModPublisher publisher = new SteamworksModPublisher(uint.Parse(SteamLocator.AppId));
+            ModPublishRequest request = new ModPublishRequest
+            {
+                ContentFolder = mod.ContentRoot ?? mod.Folder,
+                Title = metadata.DisplayName,
+                Description = metadata.Description,
+                PreviewImagePath = string.IsNullOrWhiteSpace(metadata.PreviewImage) ? null : Path.Combine(mod.ContentRoot ?? mod.Folder, metadata.PreviewImage),
+                ExistingWorkshopId = long.TryParse(mod.WorkshopId, out long existingId) ? existingId : (long?)null
+            };
 
             BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += delegate (object sender, DoWorkEventArgs e) { e.Result = publisher.Publish(modName); };
+            worker.DoWork += delegate (object sender, DoWorkEventArgs e) { e.Result = publisher.Publish(request); };
             worker.RunWorkerCompleted += delegate (object sender, RunWorkerCompletedEventArgs e)
             {
                 publishRunning = false;
@@ -198,41 +188,27 @@ namespace DW2ModLauncherBeta
                     return;
                 }
                 ModPublishResult result = e.Result as ModPublishResult;
-                if (result == null || !string.IsNullOrWhiteSpace(result.ErrorMessage))
+                if (result == null || !result.WorkshopId.HasValue)
                 {
                     MessageBox.Show(T("PublishFailed", result?.ErrorMessage ?? ""), Text);
                     SetStatus(T("PublishFailedStatus"));
                     return;
                 }
-                SetStatus(T("PublishCommandSent"));
-                if (result.WorkshopId.HasValue)
-                {
-                    ApplyCapturedWorkshopId(mod, result.WorkshopId.Value);
-                }
-                else if (isUpdate)
-                {
-                    MessageBox.Show(T("PublishUpdateSent"), T("PublishToWorkshop"));
-                }
-                else
-                {
-                    OpenCaptureWorkshopIdDialog(mod);
-                }
+                ApplyPublishSuccess(mod, result);
             };
             worker.RunWorkerAsync();
         }
 
-        // Reached when the IModPublisher implementation actually managed to read the Workshop
-        // item's id back on its own (see docs/workshop-publish.md for how Dw2ExeModPublisher does
-        // that) - the common case. Safe to call for an update too (mod.json already had the same
-        // id; this just rewrites it).
-        private void ApplyCapturedWorkshopId(ModInfo mod, long workshopId)
+        private void ApplyPublishSuccess(ModInfo mod, ModPublishResult result)
         {
             if (mod == null || string.IsNullOrWhiteSpace(mod.ModJsonPath)) return;
             try
             {
-                ModJsonWorkshopIdWriter.Write(mod.ModJsonPath, workshopId);
-                string url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshopId;
-                MessageBox.Show(T("PublishCapturedIdMessage", workshopId, url), T("PublishToWorkshop"));
+                ModJsonWorkshopIdWriter.Write(mod.ModJsonPath, result.WorkshopId.Value);
+                string url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" + result.WorkshopId.Value;
+                string message = T("PublishCapturedIdMessage", result.WorkshopId.Value, url);
+                if (result.NeedsWorkshopAgreement) message += "\r\n\r\n" + T("PublishNeedsWorkshopAgreement");
+                ShowPublishSuccessDialog(message, url);
                 SetStatus(T("WorkshopIdSaved"));
                 RefreshAll();
             }
@@ -243,15 +219,11 @@ namespace DW2ModLauncherBeta
             }
         }
 
-        // Fallback for when IModPublisher couldn't capture the id on its own (e.g. the user closed
-        // DW2's console before it caught up, or something about a given build/OS made the
-        // underlying trick fail) - the one part of the official manual workflow (copy the id off
-        // the item's URL, hand-edit it into mod.json) the launcher can still take over once the id
-        // is known.
-        private void OpenCaptureWorkshopIdDialog(ModInfo mod)
+        // A plain MessageBox can't give its buttons custom captions ("Close"/"Open in Browser"
+        // instead of "OK"/"Cancel"), so this is a small dialog instead - Close does nothing, Open
+        // in Browser launches the item's Workshop page and then closes the dialog too.
+        private void ShowPublishSuccessDialog(string message, string url)
         {
-            if (mod == null || string.IsNullOrWhiteSpace(mod.ModJsonPath)) return;
-
             using (Form dialog = new Form())
             {
                 dialog.Text = T("PublishToWorkshop");
@@ -259,71 +231,33 @@ namespace DW2ModLauncherBeta
                 dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
                 dialog.MaximizeBox = false;
                 dialog.MinimizeBox = false;
-                dialog.Size = new Size(560, 300);
+                dialog.ClientSize = new Size(480, 210);
                 dialog.BackColor = Dw2Deep;
                 dialog.ForeColor = Dw2Text;
                 dialog.Font = Font;
 
-                Label note = new Label();
-                note.Location = new Point(18, 18);
-                note.Size = new Size(510, 90);
-                note.Text = T("PublishFirstTimeNote");
-                dialog.Controls.Add(note);
-
-                Button openWorkshopFiles = MakeButton(T("OpenMyWorkshopFiles"), 18, 118, 220, 34);
-                openWorkshopFiles.Click += delegate
+                Label messageLabel = new Label
                 {
-                    try { Process.Start(new ProcessStartInfo("https://steamcommunity.com/my/myworkshopfiles/?appid=" + SteamLocator.AppId) { UseShellExecute = true }); }
+                    Location = new Point(20, 20),
+                    Size = new Size(440, 130),
+                    Text = message
+                };
+                dialog.Controls.Add(messageLabel);
+
+                Button openBrowser = MakeButton(T("OpenInBrowser"), 190, 160, 150, 34);
+                Button close = MakeButton(T("Close"), 350, 160, 110, 34);
+                close.DialogResult = DialogResult.Cancel;
+                dialog.Controls.Add(openBrowser);
+                dialog.Controls.Add(close);
+
+                openBrowser.Click += delegate
+                {
+                    try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
                     catch (Exception ex) { MessageBox.Show(ex.Message, Text); }
-                };
-                dialog.Controls.Add(openWorkshopFiles);
-
-                Label idLabel = new Label();
-                idLabel.Text = T("WorkshopIdLabel");
-                idLabel.Location = new Point(18, 168);
-                idLabel.AutoSize = true;
-                dialog.Controls.Add(idLabel);
-
-                TextBox idBox = new TextBox();
-                idBox.Location = new Point(18, 192);
-                idBox.Size = new Size(250, 25);
-                idBox.BackColor = Dw2Void;
-                idBox.ForeColor = Dw2Text;
-                idBox.BorderStyle = BorderStyle.FixedSingle;
-                dialog.Controls.Add(idBox);
-
-                Button save = MakeButton(T("Save"), 290, 230, 115, 34);
-                Button cancel = MakeButton(T("Cancel"), 415, 230, 115, 34);
-                cancel.DialogResult = DialogResult.Cancel;
-                dialog.Controls.Add(save);
-                dialog.Controls.Add(cancel);
-
-                save.Click += delegate
-                {
-                    long workshopId;
-                    if (!long.TryParse((idBox.Text ?? "").Trim(), out workshopId) || workshopId <= 0)
-                    {
-                        MessageBox.Show(T("InvalidWorkshopId"), Text);
-                        return;
-                    }
-                    try
-                    {
-                        ModJsonWorkshopIdWriter.Write(mod.ModJsonPath, workshopId);
-                        dialog.DialogResult = DialogResult.OK;
-                        dialog.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogException("Write workshopId to mod.json", ex);
-                        MessageBox.Show(ex.Message, Text);
-                    }
+                    dialog.Close();
                 };
 
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    SetStatus(T("WorkshopIdSaved"));
-                    RefreshAll();
-                }
+                dialog.ShowDialog(this);
             }
         }
     }

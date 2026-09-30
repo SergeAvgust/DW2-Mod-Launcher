@@ -6,7 +6,7 @@ Collective directives for anyone (human or AI) working in this repo. This file i
 
 DW2 Mod Launcher is an unofficial, open-source (MIT) community launcher/mod manager for **Distant Worlds 2**. It is a hobby project developed cooperatively; contributions, forks, and continued community development are explicitly welcomed (see [README.md](README.md)).
 
-Current features (implemented): scanning/enabling/disabling MODs from Steam Workshop and the local MOD folder, duplicate detection, file-conflict checks between enabled MODs, Workshop update checks, MOD info/README/tool discovery, INI editing, schema-driven JSON settings editing, per-MOD launch args, code-mod loading via an injected loader DLL (see [docs/dll-injection.md](docs/dll-injection.md)), publishing a local MOD to the Steam Workshop via DW2's own `--ugc-publish` (see [docs/workshop-publish.md](docs/workshop-publish.md)), EN/JP UI.
+Current features (implemented): scanning/enabling/disabling MODs from Steam Workshop and the local MOD folder, duplicate detection, file-conflict checks between enabled MODs, Workshop update checks, MOD info/README/tool discovery, INI editing, schema-driven JSON settings editing, per-MOD launch args, code-mod loading via an injected loader DLL (see [docs/dll-injection.md](docs/dll-injection.md)), publishing a local MOD to the Steam Workshop by embedding the Steamworks API directly (see [docs/workshop-publish.md](docs/workshop-publish.md)), EN/JP UI.
 
 Planned/target scope (in progress or aspirational — confirm current state before assuming these exist):
 - Load order selection for enabled MODs
@@ -29,15 +29,12 @@ Planned/target scope (in progress or aspirational — confirm current state befo
     settings editor as schema-based ones), `IniKeyHumanizer`, `UserDataRoot` (`%AppData%\DW2ModLauncher`),
     `ModJsonWorkshopIdWriter`
   - `Services/Publishing/` — Steam Workshop publish (see [docs/workshop-publish.md](docs/workshop-publish.md)).
-    `IModPublisher`/`ModPublishResult`/`ModPublishCommandBuilder`/`ModPublishMetadataEditor`
-    (reads/writes mod.json's displayName/description/previewImage/version/bundles) are public;
-    `Dw2ExeModPublisher` is the only `IModPublisher` implementation today, wrapping DW2's own
-    `--ugc-publish`. Everything else it needs
-    (`ModPublishOutputParser`, `ModWorkshopIdWatcher`, and `Interop/ChildConsoleCapture` — the
-    launcher's only unmanaged/P-Invoke code, reading a child process's own console via
-    `AttachConsole`) is `internal`, on purpose: nothing outside this folder should need to know DW2's
-    console even exists, so a future publisher (e.g. driving `steamcmd` instead) only means adding a
-    new class here.
+    `IModPublisher`/`ModPublishRequest`/`ModPublishResult`/`ModPublishMetadataEditor` (reads/writes
+    mod.json's displayName/description/previewImage/version/bundles) are the stable surface;
+    `SteamworksModPublisher` is the only `IModPublisher` implementation, embedding the Steamworks
+    API directly (via the `Facepunch.Steamworks` NuGet package — MIT licensed) so publishing
+    piggybacks on the locally logged-in Steam client instead of needing its own credentials. A
+    future alternative implementation only means adding a new class here.
   - `Diagnostics/Logger.cs` — crash log writer
 - [src/DW2ModLauncher.Loader/](src/DW2ModLauncher.Loader/) — the standalone DLL the launcher injects via
   `--low-level-inject` (see [docs/dll-injection.md](docs/dll-injection.md)). Deliberately has no project
@@ -80,7 +77,7 @@ before pushing to fix formatting issues the check would otherwise catch.
 
 - Keep the README's English and Japanese sections in sync when user-facing behavior changes.
 - This is community-maintained: prefer clear, approachable code and PRs over clever ones — contributors will span a range of experience levels.
-- License is MIT; don't introduce dependencies with incompatible or unclear licensing.
+- License is MIT; don't introduce dependencies with incompatible or unclear licensing. (`Facepunch.Steamworks`, used for Workshop publish, is MIT and ships its own native `steam_api64.dll` — see [docs/workshop-publish.md](docs/workshop-publish.md) for what that requires at build/runtime.)
 - Favor open, cross-platform-friendly tooling where practical, since C# Dev Kit's free-use license (relied on by contributors in VS Code) is conditioned on this project staying open-source/non-commercial.
 - Document non-obvious decisions (mod conflict-detection rules, merge/load-order semantics, DLL-injection launch flags) in [docs/](docs/) rather than only in commit messages, since this shapes contributor and AI-agent understanding going forward.
 

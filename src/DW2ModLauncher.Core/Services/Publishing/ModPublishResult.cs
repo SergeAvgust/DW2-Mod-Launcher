@@ -1,16 +1,17 @@
 namespace DW2ModLauncher.Core.Services.Publishing
 {
     /// <summary>
-    /// What IModPublisher.Publish hands back. WorkshopId is set when the implementation managed to
-    /// read the new/updated item's id back (however it does that - for Dw2ExeModPublisher, see
-    /// docs/workshop-publish.md); it's null when publishing still ran but the id couldn't be
-    /// recovered, in which case the caller falls back to asking the user for it by hand.
-    /// ErrorMessage is set only for a hard failure (couldn't even start the publish command).
+    /// What IModPublisher.Publish hands back. WorkshopId is set on success - the new or updated
+    /// item's id, straight from Steam, no guessing or console-scraping involved.
+    /// ErrorMessage is set on failure (Steam not running/logged in, the call itself failing, etc).
+    /// NeedsWorkshopAgreement means Steam accepted the item but the MOD's Steam account still has
+    /// to accept the Workshop legal agreement (a one-time thing per account) before the item is
+    /// actually visible to anyone else.
     /// </summary>
     public class ModPublishResult
     {
         public long? WorkshopId { get; set; }
         public string ErrorMessage { get; set; }
-        public int ExitCode { get; set; }
+        public bool NeedsWorkshopAgreement { get; set; }
     }
 }
