@@ -358,12 +358,17 @@ namespace DW2ModLauncherBeta
             workshopUpdateButton.Click += delegate { BeginWorkshopUpdateCheck(true); };
             leftTop.Controls.Add(workshopUpdateButton);
 
+            publishButton = MakeButton(T("PublishToWorkshop"), 525, 7, 150, 30);
+            publishButton.Enabled = false;
+            publishButton.Click += delegate { PublishSelectedMod(); };
+            leftTop.Controls.Add(publishButton);
+
             Label hint = new Label();
             hint.Name = "ModListHint";
             hint.AutoSize = true;
             hint.ForeColor = Dw2Gold;
             hint.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            hint.Location = new Point(540, 13);
+            hint.Location = new Point(685, 13);
             hint.Text = T("DragRowsToChangeLoadOrder");
             leftTop.Controls.Add(hint);
 
@@ -442,6 +447,7 @@ namespace DW2ModLauncherBeta
             {
                 ModInfo selectedMod = list.SelectedItems.Count == 0 ? null : list.SelectedItems[0].Tag as ModInfo;
                 if (iniButton != null) iniButton.Enabled = ModHasConfigurableSettings(selectedMod);
+                if (publishButton != null) publishButton.Enabled = selectedMod != null && !selectedMod.IsWorkshop;
                 selectedFolderButton.Enabled = list.SelectedItems.Count > 0;
                 Control documentsButton = FindControlRecursive(leftTop, "ModDocumentsButton");
                 if (documentsButton != null) documentsButton.Enabled = selectedMod != null && selectedMod.IncludedDocuments != null && selectedMod.IncludedDocuments.Count > 0;
@@ -646,6 +652,7 @@ namespace DW2ModLauncherBeta
             if (selectedFolderButton != null) selectedFolderButton.Text = T("SelectedMODFolder");
             if (iniButton != null) iniButton.Text = T("INISettings");
             if (workshopUpdateButton != null) workshopUpdateButton.Text = T("CheckUpdates");
+            if (publishButton != null) publishButton.Text = T("PublishToWorkshop");
             Control modDocumentsButton = FindControlRecursive(this, "ModDocumentsButton");
             if (modDocumentsButton != null) modDocumentsButton.Text = T("OpenDocs");
             if (detectButton != null) detectButton.Text = T("AutoDetect");
